@@ -1,7 +1,9 @@
 #include <vector>
+#include <set>
 #include <string>
 #include <map>
 #include <iostream>
+#include <queue>
 #include <stdexcept>
 #include <glm/glm.hpp>
 #define vector std::vector
@@ -9,7 +11,7 @@
 
 // Rules
 """
-1. The edges are directed and point in counter clockwise direction.
+1. The edges are directed and point in one direction. The twin edge points in the opposite direction.
 2. Always for a vertex choose the leftmost edge.
 
 """
@@ -32,7 +34,7 @@ struct half_edge{
 struct face{
     int face_idx;
     int half_edge_idx; // any edge 
-    vec3 normal;
+    vec3 face_normal;
 };
 
 class mesh{
@@ -54,4 +56,6 @@ class mesh{
 
     // Constructors
     void vertex_set_construction(const vec3* in_vertices, const vec3* in_normals, int nv, bool normals_present);
+    void face_set_construction(const vector<vector<int>> &faces, int nf);
+
 };
