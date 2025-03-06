@@ -102,7 +102,7 @@ namespace COL781 {
             r.setTriangleIndices(object, nt, triangles);
             r.setVertexAttribs(wireframe, 0, nv, vertices);
             r.setVertexAttribs(wireframe, 1, nv, normals);
-            r.setEdgeIndices(wireframe, ne, edges);
+            r.setEdgeIndices(wireframe, ne, edges); // These are the outline edges of the mesh
             stagetransform = calculateModelMatrix(vertices, nv);
         }
 
