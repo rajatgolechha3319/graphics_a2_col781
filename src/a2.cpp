@@ -157,7 +157,7 @@ void mesh::update_vertex (int vertex_idx, int curr_half_edge_idx){
     } else{
         int next_edge;
         int curr_edge = vertices[vertex_idx].half_edge_idx; // The edge point to the vertex
-        if(half_edge_vector[half_edge_idx].twin_half_edge_idx == -1){
+        if(half_edge_vector[curr_half_edge_idx].twin_half_edge_idx == -1){
             // If the new edge is not a twin of any other edge means a boundary
             pass
         }
@@ -187,9 +187,9 @@ void mesh::update_vertex (int vertex_idx, int curr_half_edge_idx){
     }
 }
 
-void mesh::face_set_construction(const vector<vector<int>> &faces, int nf){
+void mesh::face_set_construction(const vector<vector<int>> &in_faces, int nf){
     // Get the correct faces using consistent ordering
-    vector<vector<int>> new_faces = new_consistent_faces(faces, nf);
+    vector<vector<int>> new_faces = new_consistent_faces(in_faces, nf);
     int face_idx = 0;
     wh(face_idx,nf){
         // Construction work
@@ -219,6 +219,12 @@ void mesh::face_set_construction(const vector<vector<int>> &faces, int nf){
             update_vertex(new_faces[face_idx][i], half_edge_idx + i);
             i++;
         }
+        // Update faces
+        face new_face;
+        new_face.face_idx = face_idx;
+        new_face.half_edge_idx = half_edge_idx;
+        // Skip normal
+        faces.push_back(new_face);
         face_idx++;
     }
 }
