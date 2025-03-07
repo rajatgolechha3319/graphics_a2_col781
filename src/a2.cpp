@@ -1,5 +1,6 @@
 #include "a2.hpp"
 #define wh(i,n) while(i<n)
+#define pass (void)0
 
 // Helper functions
 pair<int, int> get_edge(int i1, int i2) {
@@ -109,6 +110,32 @@ vector<int> consistent_ordering(const vector<vector<int>>& faces, int nf) {
     return flip;
 }
 
+vector<vector<int>> new_consistent_faces(const vector<vector<int>>& faces, int nf){
+    vector<int> flip = consistent_ordering(faces, nf);
+    vector<vector<int>> new_faces(nf);
+    int face_idx = 0;
+    wh(face_idx, nf) {
+        const vector<int>& face = faces[face_idx];
+        int face_size = face.size();
+        
+        // If face is to be flipped, reverse the order of vertices
+        if (flip[face_idx] == 1) {
+            int i = face_size - 1;
+            wh(i, face_size) {
+                new_faces[face_idx].push_back(face[i]);
+                i--;
+            }
+        } else {
+            int i = 0;
+            wh(i, face_size) {
+                new_faces[face_idx].push_back(face[i]);
+                i++;
+            }
+        }
+        face_idx++;
+    }
+    return new_faces;
+}
 
 // Mesh functions
 void mesh::vertex_set_construction(const vec3* in_vertices, const vec3* in_normals, int nv, bool normals_present){
@@ -123,7 +150,76 @@ void mesh::vertex_set_construction(const vec3* in_vertices, const vec3* in_norma
     }
 }
 
-void mesh::face_set_construction(const vector<vector<int>> &faces, int nf){
-    // For each face we have a set of edges
-
+void mesh::update_vertex (int vertex_idx, int curr_half_edge_idx){
+    // This is to ensure leftmost edge is always stored in the vertex
+    if(vertices[vertex_idx].half_edge_idx == -1){
+        vertices[vertex_idx].half_edge_idx = curr_half_edge_idx;
+    } else{
+        int next_edge;
+        int curr_edge = vertices[vertex_idx].half_edge_idx; // The edge point to the vertex
+        if(half_edge_vector[half_edge_idx].twin_half_edge_idx == -1){
+            // If the new edge is not a twin of any other edge means a boundary
+            pass
+        }
+        else{
+            // Iteratively go to twin and loop around the face until you get an edge pointing to vertex 
+            // And do the same until either we rotate around the vertex completely then do nothing
+            // Else we get an edge pointing to the vertex that is on the leftmost boundary
+            int base_idx = curr_edge;
+            while(true){
+                next_edge = half_edge_vector[curr_edge].twin_half_edge_idx;
+                if(next_edge == -1){
+                    // Update the vertex to point to the leftmost edge
+                    vertices[vertex_idx].half_edge_idx = curr_edge;
+                    break;
+                }
+                // We got a twin so loop around the face to get the edge pointing to vertex
+                while(half_edge_vector[next_edge].vertex_idx != vertex_idx){
+                    next_edge = half_edge_vector[next_edge].next_half_edge_idx;
+                }
+                curr_edge = next_edge;
+                if(curr_edge == base_idx){
+                    // We looped around the vertex completely
+                    break;
+                }
+            }
+        }
+    }
 }
+
+void mesh::face_set_construction(const vector<vector<int>> &faces, int nf){
+    // Get the correct faces using consistent ordering
+    vector<vector<int>> new_faces = new_consistent_faces(faces, nf);
+    int face_idx = 0;
+    wh(face_idx,nf){
+        // Construction work
+        int face_size = new_faces[face_idx].size();
+        int i = 0;
+        int half_edge_idx = half_edge_vector.size();
+        wh(i, face_size){
+            half_edge new_half_edge;
+            // Edge from A to B will point B
+            new_half_edge.vertex_idx = new_faces[face_idx][(i+1)%face_size];
+            new_half_edge.face_idx = face_idx;
+            new_half_edge.next_half_edge_idx = half_edge_idx + (i+1)%face_size;
+
+            pair<int, int> twin_edge = make_pair(new_faces[face_idx][(i+1)%face_size], new_faces[face_idx][i]);
+            pair<int, int> curr_edge = make_pair(new_faces[face_idx][i], new_faces[face_idx][(i+1)%face_size]);
+
+            // Check if twin is in the map
+            if(edge_to_half_edge.find(twin_edge) != edge_to_half_edge.end()){
+                int twin_idx = edge_to_half_edge[twin_edge];
+                new_half_edge.twin_half_edge_idx = twin_idx;
+                half_edge_vector[twin_idx].twin_half_edge_idx = half_edge_idx + i;
+            } else {
+                new_half_edge.twin_half_edge_idx = -1;
+                edge_to_half_edge[curr_edge] = half_edge_idx + i;
+            }
+            half_edge_vector.push_back(new_half_edge);
+            update_vertex(new_faces[face_idx][i], half_edge_idx + i);
+            i++;
+        }
+        face_idx++;
+    }
+}
+

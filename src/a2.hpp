@@ -54,6 +54,9 @@ class mesh{
     vector<half_edge> half_edges; // Derived from 3, 4, 5
     vector<face> faces; // Derived from 3, 4, 5
 
+    // Helper functions
+    void update_vertex(int vertex_idx, int curr_half_edge_idx);
+
     // Constructors
     void vertex_set_construction(const vec3* in_vertices, const vec3* in_normals, int nv, bool normals_present);
     void face_set_construction(const vector<vector<int>> &faces, int nf);
