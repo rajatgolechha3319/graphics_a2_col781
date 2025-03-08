@@ -98,6 +98,6 @@ int main() {
         return EXIT_FAILURE;
     }
 
-    v.setMesh(20, 10, 12, vertices, triangles, edges, normals);
+    v.setMesh_testing(20, 10, 12, vertices, triangles, edges, normals);
     v.view();
 }

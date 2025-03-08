@@ -104,6 +104,70 @@ namespace COL781 {
             r.setVertexAttribs(wireframe, 1, nv, normals);
             r.setEdgeIndices(wireframe, ne, edges); // These are the outline edges of the mesh
             stagetransform = calculateModelMatrix(vertices, nv);
+
+            // Checking working of my a2 functions
+            // my_mesh.vertex_set_construction(vertices, normals, nv, true);
+            // my_mesh.face_set_construction(my_mesh.tri_converter(triangles,nt), nt);
+            // my_mesh.print_ds();
+
+        }
+
+        void Viewer::setMesh_testing(int nv, int nt, int ne, const glm::vec3* vertices, const glm::ivec3* triangles, const glm::ivec2* edges, const glm::vec3* normals) {
+            if(normals == nullptr) {
+                glm::vec3* normalsz = new glm::vec3[nv];
+                for(int i = 0; i < nv; i++) {
+                    normalsz[i] = glm::vec3(0.0, 0.0, 0.0);
+                }
+                normals = normalsz;
+            }
+            // My implementation
+            // First set the vertices and normals
+            my_mesh.vertex_set_construction(vertices, normals, nv, true);
+            // Then convert the faces to triangles
+            std::vector<std::vector<int>> poly_faces = my_mesh.tri_converter(triangles, nt);
+            // Then set the faces
+            my_mesh.face_set_construction(poly_faces, nt);
+
+            // Now update the Rasterizer
+            r.setVertexAttribs(object, 0, my_mesh.get_num_vertices() , my_mesh.get_vertices_pos());
+            r.setVertexAttribs(object, 1, my_mesh.get_num_vertices(), my_mesh.get_vertices_normal());
+            r.setTriangleIndices(object, my_mesh.get_num_faces(), my_mesh.get_triangles());
+            r.setVertexAttribs(wireframe, 0, my_mesh.get_num_vertices(), my_mesh.get_vertices_pos());
+            r.setVertexAttribs(wireframe, 1, my_mesh.get_num_vertices(), my_mesh.get_vertices_normal());
+            r.setEdgeIndices(wireframe, my_mesh.get_num_boundary_edges(), my_mesh.get_boundary_edges());
+            stagetransform = calculateModelMatrix(my_mesh.get_vertices_pos(), my_mesh.get_num_vertices());
+        }
+
+        void Viewer::setMesh_new(int nv, const glm::vec3* vertices, const std::vector<std::vector<int>> &poly_faces, const glm::vec3* normals){
+            if(normals == nullptr) {
+                glm::vec3* normalsz = new glm::vec3[nv];
+                for(int i = 0; i < nv; i++) {
+                    normalsz[i] = glm::vec3(0.0, 0.0, 0.0);
+                }
+                normals = normalsz;
+            }
+            // My implementation
+            // First set the vertices and normals
+            my_mesh.vertex_set_construction(vertices, normals, nv, true);
+            // Then convert the faces to triangles
+            // Need to deal with const part
+            // Create a copy of the faces
+            int nf = poly_faces.size();
+            std::vector<std::vector<int>> poly_faces_copy = poly_faces;
+            my_mesh.triangulate_mesh(poly_faces_copy, nf);
+            // Then set the faces
+            nf = poly_faces_copy.size();
+            my_mesh.face_set_construction(poly_faces_copy, nf);
+
+            // Now update the Rasterizer
+            r.setVertexAttribs(object, 0, my_mesh.get_num_vertices() , my_mesh.get_vertices_pos());
+            r.setVertexAttribs(object, 1, my_mesh.get_num_vertices(), my_mesh.get_vertices_normal());
+            r.setTriangleIndices(object, my_mesh.get_num_faces(), my_mesh.get_triangles());
+            r.setVertexAttribs(wireframe, 0, my_mesh.get_num_vertices(), my_mesh.get_vertices_pos());
+            r.setVertexAttribs(wireframe, 1, my_mesh.get_num_vertices(), my_mesh.get_vertices_normal());
+            r.setEdgeIndices(wireframe, my_mesh.get_num_boundary_edges(), my_mesh.get_boundary_edges());
+            stagetransform = calculateModelMatrix(my_mesh.get_vertices_pos(), my_mesh.get_num_vertices());
+
         }
 
         void Viewer::view() {
