@@ -143,7 +143,14 @@ std::vector<std::vector<int>> mesh::tri_converter(const glm::ivec3* triangles, i
         faces[face_idx].push_back(triangles[face_idx].y);
         faces[face_idx].push_back(triangles[face_idx].z);
         triangles_ivec.push_back(triangles[face_idx]); // Either tri_converter or triangulate mesh only one can be called
+        // Boundary Edge dealing
+        boundary_edges.insert(std::make_pair(triangles[face_idx].x, triangles[face_idx].y));
+        boundary_edges.insert(std::make_pair(triangles[face_idx].y, triangles[face_idx].z));
+        boundary_edges.insert(std::make_pair(triangles[face_idx].z, triangles[face_idx].x));
         face_idx++;
+    }
+    for(const auto& edge_ : boundary_edges){
+        boundary_edges_vec.emplace_back(edge_.first, edge_.second);
     }
     return faces;
 }
@@ -165,6 +172,7 @@ void mesh::vertex_set_construction(const glm::vec3* in_vertices, const glm::vec3
 
 void mesh::update_vertex (int vertex_idx, int curr_half_edge_idx){
     // This is to ensure leftmost edge is always stored in the vertex
+    // std::cout << "Updating vertex " << vertex_idx << std::endl;
     if(vertices[vertex_idx].half_edge_idx == -1){
         vertices[vertex_idx].half_edge_idx = curr_half_edge_idx;
     } else{
@@ -199,6 +207,14 @@ void mesh::update_vertex (int vertex_idx, int curr_half_edge_idx){
             }
         }
     }
+    // std::cout << "Updated vertex " << vertex_idx << std::endl;
+
+
+    // Print the half-edge vector
+    // for(int i = 0; i < half_edge_vector.size(); i++){
+    //     std::cout << "Half-Edge " << i << ": " << half_edge_vector[i].vertex_idx << " " << half_edge_vector[i].face_idx << " " << half_edge_vector[i].next_half_edge_idx << " " << half_edge_vector[i].twin_half_edge_idx << std::endl;
+    // }
+
 }
 
 void mesh::triangulate_mesh(std::vector<std::vector<int>> &faces, int nf){
@@ -208,6 +224,12 @@ void mesh::triangulate_mesh(std::vector<std::vector<int>> &faces, int nf){
     wh(face_idx, nf){
         const std::vector<int>& face = faces[face_idx];
         int face_size = face.size();
+        // Boundary Edge dealing
+        int j = 0;
+        wh(j, face_size){
+            boundary_edges.insert(std::make_pair(face[j], face[(j+1)%face_size]));
+            j++;
+        }
         if(face_size > 3){
             // Triangulate the face
             int i = 0;
@@ -228,26 +250,52 @@ void mesh::triangulate_mesh(std::vector<std::vector<int>> &faces, int nf){
         face_idx++;
     }
     faces = new_faces;
+
+    for(const auto& edge_ : boundary_edges){
+        boundary_edges_vec.emplace_back(edge_.first, edge_.second);
+    }
+
 }
         
 void mesh::face_set_construction(const std::vector<std::vector<int>> &in_faces, int nf){
     // Get the correct faces using consistent ordering
+    // std::cout << " Entered face set construction" << std::endl;
+    // // Print input
+    // for(auto face : in_faces){
+    //     for(auto vertex : face){
+    //         std::cout << vertex << " ";
+    //     }
+    //     std::cout << std::endl;
+    // }
+
+    // std::cout << " Number of faces: " << nf << std::endl;
+
+
     std::vector<std::vector<int>> new_faces = new_consistent_faces(in_faces, nf);
+
+    // std::cout << " Done consistent ordering" << std::endl;
+
     int face_idx = 0;
     wh(face_idx,nf){
+
+        // std::cout << " Face " << face_idx << ": ";
+
         // Construction work
         int face_size = new_faces[face_idx].size();
         int i = 0;
         int half_edge_idx = half_edge_vector.size();
         wh(i, face_size){
+
+            // std::cout << "Processing edge " << i << std::endl;
+
             half_edge new_half_edge;
             // Edge from A to B will point B
             new_half_edge.vertex_idx = new_faces[face_idx][(i+1)%face_size];
             new_half_edge.face_idx = face_idx;
             new_half_edge.next_half_edge_idx = half_edge_idx + (i+1)%face_size;
 
-            std::pair<int, int> twin_edge = std::make_pair(new_faces[face_idx][(i+1)%face_size], new_faces[face_idx][i]);
-            std::pair<int, int> curr_edge = std::make_pair(new_faces[face_idx][i], new_faces[face_idx][(i+1)%face_size]);
+            std::pair<int, int> twin_edge = get_edge(new_faces[face_idx][(i+1)%face_size], new_faces[face_idx][i]);
+            std::pair<int, int> curr_edge = get_edge(new_faces[face_idx][i], new_faces[face_idx][(i+1)%face_size]);
 
             // Check if twin is in the map
             if(edge_to_half_edge.find(twin_edge) != edge_to_half_edge.end()){
@@ -259,8 +307,7 @@ void mesh::face_set_construction(const std::vector<std::vector<int>> &in_faces, 
                 edge_to_half_edge[curr_edge] = half_edge_idx + i;
             }
             half_edge_vector.push_back(new_half_edge);
-            update_vertex(new_faces[face_idx][i], half_edge_idx + i);
-            boundary_edges.insert(get_edge(new_faces[face_idx][i], new_faces[face_idx][(i+1)%face_size]));
+            update_vertex(new_half_edge.vertex_idx , half_edge_idx + i);
             i++;
         }
         // Update faces
@@ -270,10 +317,6 @@ void mesh::face_set_construction(const std::vector<std::vector<int>> &in_faces, 
         // Skip normal
         faces.push_back(new_face);
         face_idx++;
-    }
-    // Convert boundary edges to vector
-    for(const auto& edge_ : boundary_edges){
-        boundary_edges_vec.emplace_back(edge_.first, edge_.second);
     }
 }
 

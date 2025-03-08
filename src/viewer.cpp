@@ -148,17 +148,23 @@ namespace COL781 {
             }
             // My implementation
             // First set the vertices and normals
+            std::cout << " Entered setMesh_new" << std::endl;
             my_mesh.vertex_set_construction(vertices, normals, nv, true);
+            std::cout << " Done setting vertices" << std::endl;
             // Then convert the faces to triangles
             // Need to deal with const part
             // Create a copy of the faces
             int nf = poly_faces.size();
+            std::cout << " Calling triangulate mesh" << std::endl;
             std::vector<std::vector<int>> poly_faces_copy = poly_faces;
             my_mesh.triangulate_mesh(poly_faces_copy, nf);
+            std::cout << " Done triangulating mesh" << std::endl;
             // Then set the faces
             nf = poly_faces_copy.size();
+            std::cout << " Calling face set construction" << std::endl;
             my_mesh.face_set_construction(poly_faces_copy, nf);
-
+            std::cout << " Done face set construction" << std::endl;
+            my_mesh.print_ds();
             // Now update the Rasterizer
             r.setVertexAttribs(object, 0, my_mesh.get_num_vertices() , my_mesh.get_vertices_pos());
             r.setVertexAttribs(object, 1, my_mesh.get_num_vertices(), my_mesh.get_vertices_normal());
@@ -167,9 +173,130 @@ namespace COL781 {
             r.setVertexAttribs(wireframe, 1, my_mesh.get_num_vertices(), my_mesh.get_vertices_normal());
             r.setEdgeIndices(wireframe, my_mesh.get_num_boundary_edges(), my_mesh.get_boundary_edges());
             stagetransform = calculateModelMatrix(my_mesh.get_vertices_pos(), my_mesh.get_num_vertices());
+            std::cout << " Done setting mesh" << std::endl;
+        }
+
+        void Viewer::create_unit_rectangle(int m, int n){
+            // Create a unit rectangle with m rows and n columns
+            int idx1 = 0;
+            int idx2 = 0;
+            int nv = (m+1)*(n+1);
+            std::vector<glm::vec3> vertices(nv);
+            while(idx1 < m+1){
+                idx2 = 0;
+                while(idx2 < n+1){
+                    vertices[idx1*(n+1) + idx2] = glm::vec3((float)idx2/(float)n, (float)idx1/(float)m, 0.0f);
+                    idx2++;
+                }
+                idx1++;
+            }
+            // Poly faces
+            std::vector<std::vector<int>> poly_faces;
+            idx1 = 0;
+            while(idx1 < m){
+                idx2 = 0;
+                while(idx2 < n){
+                    // Make a square and add to poly_faces
+                    std::vector<int> square;
+                    square.push_back(idx1*(n+1) + idx2);
+                    square.push_back(idx1*(n+1) + idx2 + 1);
+                    square.push_back((idx1+1)*(n+1) + idx2 + 1);
+                    square.push_back((idx1+1)*(n+1) + idx2);
+                    poly_faces.push_back(square);
+                    idx2++;
+                }
+                idx1++;
+            }
+            // Now create normals all pointing in 0,0,1 direction
+            glm::vec3* normals = new glm::vec3[nv];
+            idx1 = 0;
+            while(idx1 < nv){
+                normals[idx1] = glm::vec3(0.0f, 0.0f, 1.0f);
+                idx1++;
+            }
+            setMesh_new(nv, vertices.data(), poly_faces, normals);
+        }
+
+        void Viewer::create_sphere(int slices, int stacks){
+            // We will have a total of 
+            std::cout << " Entered create sphere" << std::endl;
+            int nv = 2 + slices*(stacks-1);
+            // Now get the vertices
+            std::vector<glm::vec3> vertices;
+            std::vector<glm::vec3> normals;
+            // Add the top and bottom vertices
+            float radius = 0.5f;
+            vertices.push_back(glm::vec3(0.0f, 0.0f, radius));
+            normals.push_back(glm::vec3(0.0f, 0.0f, 1.0f));
+            vertices.push_back(glm::vec3(0.0f, 0.0f, -radius));
+            normals.push_back(glm::vec3(0.0f, 0.0f, -1.0f));
+            // Now add the vertices in the middle
+            float theta = 0.0f;
+            float phi = 0.0f;
+            float d_theta = 3.14f/(float)stacks;
+            float d_phi = 2.0f*3.14f/(float)slices;
+            int idx1 = 0;
+            int idx2 = 0;
+            while(idx1 < stacks-1){
+                theta += d_theta;
+                phi = 0.0f;
+                idx2 = 0;
+                while(idx2 < slices){
+                    vertices.push_back(glm::vec3(radius*glm::sin(theta)*glm::cos(phi), radius*glm::sin(theta)*glm::sin(phi), radius*glm::cos(theta)));
+                    normals.push_back(glm::vec3(glm::sin(theta)*glm::cos(phi), glm::sin(theta)*glm::sin(phi), glm::cos(theta)));
+                    phi += d_phi;
+                    idx2++;
+                }
+                idx1++;
+            }
+            // Now create the faces
+            std::vector<std::vector<int>> poly_faces;
+            // Pole faces
+            // North
+            idx1 = 0;
+            while(idx1 < slices){
+                std::vector<int> pole_face;
+                pole_face.push_back(0);
+                pole_face.push_back(2 + idx1);
+                pole_face.push_back(2 + (idx1+1)%slices);
+                poly_faces.push_back(pole_face);
+                idx1++;
+            }
+            // South
+            idx1 = 0;
+            while(idx1 < slices){
+                std::vector<int> pole_face;
+                pole_face.push_back(1);
+                pole_face.push_back(2 + (stacks-2)*slices + idx1);
+                pole_face.push_back(2 + (stacks-2)*slices + (idx1+1)%slices);
+                poly_faces.push_back(pole_face);
+                idx1++;
+            }
+            // Now the middle faces
+            idx1 = 0;
+            while(idx1 < stacks-2){
+                idx2 = 0;
+                while(idx2 < slices){
+                    // Make a square and add to poly_faces
+                    std::vector<int> square;
+                    square.push_back(2 + idx1*slices + idx2);
+                    square.push_back(2 + idx1*slices + (idx2+1)%slices);
+                    square.push_back(2 + (idx1+1)*slices + (idx2+1)%slices);
+                    square.push_back(2 + (idx1+1)*slices + idx2);
+                    poly_faces.push_back(square);
+                    idx2++;
+                }
+                idx1++;
+            }
+
+            std::cout << " Called setMesh_new" << std::endl;
+            // Set Mesh
+            setMesh_new(nv, vertices.data(), poly_faces, normals.data());
 
         }
 
+
+        
         void Viewer::view() {
             // The transformation matrix.
             glm::mat4 model = stagetransform;

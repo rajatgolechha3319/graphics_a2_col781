@@ -98,6 +98,8 @@ int main() {
         return EXIT_FAILURE;
     }
 
-    v.setMesh_testing(20, 10, 12, vertices, triangles, edges, normals);
+    // v.setMesh_testing(20, 10, 12, vertices, triangles, edges, normals);
+    // v.create_unit_rectangle(10, 5);
+    v.create_sphere(40, 20);
     v.view();
 }
