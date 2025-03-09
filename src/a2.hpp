@@ -36,6 +36,7 @@ struct face{
     int face_idx;
     int half_edge_idx; // any edge 
     glm::vec3 face_normal;
+    float area;
 };
 
 class mesh{
@@ -49,24 +50,26 @@ class mesh{
 
     // Internal variables
     std::map<std::pair<int,int>, int> edge_to_half_edge; // This way we know if there is any pre-existing edge on that vertex pair that can be twin of the current edge
-    std::vector<half_edge> half_edge_vector; // This will be used to store the half edges
     std::set<std::pair<int,int>> boundary_edges; // This will be used to store the boundary edges
     std::vector<glm::ivec2> boundary_edges_vec; // This will be used to store the boundary edges in vector form
-
+    
     // For getters
     std::vector<glm::vec3> vertices_pos; // Derived
     std::vector<glm::vec3> vertices_normal; // Derived
     std::vector<glm::ivec3> triangles_ivec; // Derived
     // Also boundary_edges_vec declared above
     
-
+    
     // Derived
     std::vector<vertex> vertices; // Derived from 1,2
-    std::vector<half_edge> half_edges; // Derived from 3, 4, 5
+    std::vector<half_edge> half_edge_vector; // This will be used to store the half edges
+    // std::vector<half_edge> half_edges; // Derived from 3, 4, 5 // We are using half_edge_vector for this
     std::vector<face> faces; // Derived from 3, 4, 5
 
     // Helper functions
     void update_vertex(int vertex_idx, int curr_half_edge_idx);
+    void face_normal_gen(int idx);
+    void vertex_normal_update(int idx);
 
 
     // Constructors

@@ -164,6 +164,7 @@ namespace COL781 {
             std::vector<glm::vec3> vertice_normal;
             std::vector<std::vector<int>> faces;
             std::vector<std::string> temp;
+            std::cout << "Parsing obj file" << std::endl;
             while (std::getline(file, line)) {
                 split_string(line, temp);
                 if(temp[0] == "v"){

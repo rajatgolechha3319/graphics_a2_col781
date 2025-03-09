@@ -217,8 +217,101 @@ void mesh::update_vertex (int vertex_idx, int curr_half_edge_idx){
 
 }
 
+void mesh::face_normal_gen(int idx){
+    // First fetch the face
+    face curr_face = faces[idx];
+    // Now generate normal using the direction of vector area
+    glm::vec3 res = glm::vec3(0.0f,0.0f,0.0f);
+    // Get v0
+    glm::vec3 v0 = vertices[half_edge_vector[curr_face.half_edge_idx].vertex_idx].world_pos;
+    int base_id = half_edge_vector[curr_face.half_edge_idx].vertex_idx;
+    half_edge curr_edge = half_edge_vector[half_edge_vector[curr_face.half_edge_idx].next_half_edge_idx];
+    while(curr_edge.vertex_idx != base_id){
+        res += glm::cross(vertices[curr_edge.vertex_idx].world_pos - v0, vertices[half_edge_vector[curr_edge.next_half_edge_idx].vertex_idx].world_pos - v0);
+        // Current = next
+        curr_edge = half_edge_vector[curr_edge.next_half_edge_idx];
+    }
+    faces[idx].area = std::abs(glm::length(res) * 0.5f);
+    res = glm::normalize(res);
+    // Update in face
+    faces[idx].face_normal = res;
+
+}
+
+void mesh::vertex_normal_update(int idx){
+    // If vertex normal is not given it is set to 0,0,0 then run update else return
+    float eps = 1.42e-5; // Random ass number
+    if(glm::length(vertices[idx].normal) > eps){
+        return;
+    }
+
+    // // We will use area weighted normal approach
+    // float area_sum = 0.0f;
+    // glm::vec3 weighted_normal = glm::vec3(0.0f,0.0f,0.0f);
+    // // Leftmost half edge of vertex
+    // half_edge v_edge = half_edge_vector[vertices[idx].half_edge_idx];
+    // int base_face = v_edge.face_idx;
+    // // Add details of this face
+    // area_sum += faces[v_edge.face_idx].area;
+    // weighted_normal += faces[v_edge.face_idx].area * faces[v_edge.face_idx].face_normal;
+    // v_edge = half_edge_vector[v_edge.next_half_edge_idx];
+    // if(v_edge.twin_half_edge_idx != -1){
+    //     v_edge = half_edge_vector[v_edge.twin_half_edge_idx];
+    //     while(v_edge.face_idx != base_face){
+    //         // Add details
+    //         area_sum += faces[v_edge.face_idx].area;
+    //         weighted_normal += faces[v_edge.face_idx].area * faces[v_edge.face_idx].face_normal;
+    //         v_edge = half_edge_vector[v_edge.next_half_edge_idx];
+    //         if(v_edge.twin_half_edge_idx != -1){break;}
+    //         v_edge = half_edge_vector[v_edge.twin_half_edge_idx];
+    //     }
+    //     weighted_normal = weighted_normal / area_sum;
+    //     vertices[idx].normal = glm::normalize(weighted_normal);
+    // }
+    // else{
+    //     // Update vertex normal to this normal
+    //     vertices[idx].normal = glm::normalize(weighted_normal);
+    // }
+
+    // std::cout << " Called for vertex " << idx << '\n';
+    float area_sum = 0.0f;
+    glm::vec3 weighted_normal(0.0f,0.0f,0.0f);
+    int he_idx = vertices[idx].half_edge_idx;
+    int curr_idx = he_idx;
+    int face_idx;
+    half_edge current_edge;
+    do{
+        // Updates for current face
+        current_edge = half_edge_vector[curr_idx];
+        face_idx = current_edge.face_idx;
+
+        area_sum += faces[face_idx].area;
+        weighted_normal += faces[face_idx].area * faces[face_idx].face_normal;
+
+        // Go to next
+        current_edge = half_edge_vector[current_edge.next_half_edge_idx];
+        // Go to twin if exist
+        if(current_edge.twin_half_edge_idx == -1){break;}
+        curr_idx = current_edge.twin_half_edge_idx;
+        current_edge = half_edge_vector[current_edge.twin_half_edge_idx];
+
+    } while(curr_idx != he_idx);
+
+    weighted_normal /= area_sum;
+    vertices[idx].normal = glm::normalize(weighted_normal);
+    vertices_normal[idx] = vertices[idx].normal;
+    
+
+}
+
 void mesh::triangulate_mesh(std::vector<std::vector<int>> &faces, int nf){
     // Triangulate the mesh
+    for(auto x : faces){
+        for(auto y : x){
+            std::cout << y << ' ';
+        }
+        std::cout << '\n';
+    }
     std::vector<std::vector<int>> new_faces;
     int face_idx = 0;
     wh(face_idx, nf){
@@ -316,8 +409,18 @@ void mesh::face_set_construction(const std::vector<std::vector<int>> &in_faces, 
         new_face.half_edge_idx = half_edge_idx;
         // Skip normal
         faces.push_back(new_face);
+        face_normal_gen(face_idx);
         face_idx++;
     }
+
+    // Call vertex normal update for all vertices
+    int v_iter = 0;
+    int v_lim = vertices.size();
+    wh(v_iter,v_lim){
+        vertex_normal_update(v_iter);
+        v_iter++;
+    }
+
 }
 
 void mesh::print_ds() {
@@ -350,6 +453,7 @@ void mesh::print_ds() {
         const face& f = faces[i];
         std::cout << "Face " << i << ": "
                   << "Half-Edge Index = " << f.half_edge_idx << ", "
+                  << "Face Area = "<< f.area << ", "
                   << "Face Normal = (" << f.face_normal.x << ", " << f.face_normal.y << ", " << f.face_normal.z << ")" << std::endl;
     }
 
