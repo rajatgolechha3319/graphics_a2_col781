@@ -164,7 +164,11 @@ namespace COL781 {
             std::cout << " Calling face set construction" << std::endl;
             my_mesh.face_set_construction(poly_faces_copy, nf);
             std::cout << " Done face set construction" << std::endl;
-            my_mesh.print_ds();
+
+            // Uncomment for internal variables
+            // my_mesh.print_ds();
+
+
             // Now update the Rasterizer
             r.setVertexAttribs(object, 0, my_mesh.get_num_vertices() , my_mesh.get_vertices_pos());
             r.setVertexAttribs(object, 1, my_mesh.get_num_vertices(), my_mesh.get_vertices_normal());
@@ -295,6 +299,220 @@ namespace COL781 {
 
         }
 
+        void Viewer::create_cube(int m, int n, int o){
+            int nv = 0;
+
+            std::vector<glm::vec3> vertices;
+            std::vector<glm::vec3> normals;
+            std::vector<std::vector<int>> poly_faces;
+            float cube_side = 1.0f;
+
+            // Create (m+1)*(n+1)*(o+1) vertices
+
+            int idx1 = 0;
+            int idx2 = 0;
+            int idx3 = 0;
+
+            while(idx1 < m+1){
+                idx2 = 0;
+                while(idx2 < n+1){
+                    idx3 = 0;
+                    while(idx3 < o+1){
+                        vertices.push_back(glm::vec3((float)idx2/(float)n, (float)idx1/(float)m, (float)idx3/(float)o));
+                        normals.push_back(glm::vec3(0.0f, 0.0f, 0.0f));
+                        idx3++;
+                    }
+                    idx2++;
+                }
+                idx1++;
+            }
+
+            // Create faces
+            // Front and back faces
+            idx1 = 0;
+            while(idx1 < m){
+                idx2 = 0;
+                while(idx2 < n){
+                    std::vector<int> front_face;
+                    front_face.push_back(idx1*(n+1)*(o+1) + idx2*(o+1));
+                    front_face.push_back((idx1+1)*(n+1)*(o+1) + idx2*(o+1));
+                    front_face.push_back((idx1+1)*(n+1)*(o+1) + (idx2+1)*(o+1));
+                    front_face.push_back(idx1*(n+1)*(o+1) + (idx2+1)*(o+1));
+
+                    std::vector<int> back_face;
+                    back_face.push_back(idx1*(n+1)*(o+1) + (idx2+1)*(o+1) + o);
+                    back_face.push_back((idx1+1)*(n+1)*(o+1) + (idx2+1)*(o+1) + o);
+                    back_face.push_back((idx1+1)*(n+1)*(o+1) + idx2*(o+1) + o);
+                    back_face.push_back(idx1*(n+1)*(o+1) + idx2*(o+1) + o);
+
+                    poly_faces.push_back(front_face);
+                    poly_faces.push_back(back_face);
+                    idx2++;
+                }
+                idx1++;
+            }
+
+            // Top and bottom faces
+            idx1 = 0;
+            while(idx1 < m){
+                idx2 = 0;
+                while(idx2 < o){
+                    std::vector<int> top_face;
+                    top_face.push_back(idx1*(n+1)*(o+1) + n*(o+1) + idx2);
+                    top_face.push_back((idx1+1)*(n+1)*(o+1) + n*(o+1) + idx2);
+                    top_face.push_back((idx1+1)*(n+1)*(o+1) + n*(o+1) + (idx2+1));
+                    top_face.push_back(idx1*(n+1)*(o+1) + n*(o+1) + (idx2+1));
+
+                    std::vector<int> bottom_face;
+                    bottom_face.push_back(idx1*(n+1)*(o+1) + (idx2+1));
+                    bottom_face.push_back((idx1+1)*(n+1)*(o+1) + (idx2+1));
+                    bottom_face.push_back((idx1+1)*(n+1)*(o+1) + idx2);
+                    bottom_face.push_back(idx1*(n+1)*(o+1) + idx2);
+
+                    poly_faces.push_back(top_face);
+                    poly_faces.push_back(bottom_face);
+                    idx2++;
+                }
+                idx1++;
+            }
+
+            // Left and right faces
+            idx1 = 0;
+            while(idx1 < n){
+                idx2 = 0;
+                while(idx2 < o){
+                    std::vector<int> left_face;
+                    left_face.push_back(idx1*(o+1) + idx2);
+                    left_face.push_back((idx1+1)*(o+1) + idx2);
+                    left_face.push_back((idx1+1)*(o+1) + (idx2+1));
+                    left_face.push_back(idx1*(o+1) + (idx2+1));
+
+                    std::vector<int> right_face;
+                    right_face.push_back(m*(n+1)*(o+1) + idx1*(o+1) + idx2);
+                    right_face.push_back(m*(n+1)*(o+1) + (idx1+1)*(o+1) + idx2);
+                    right_face.push_back(m*(n+1)*(o+1) + (idx1+1)*(o+1) + (idx2+1));
+                    right_face.push_back(m*(n+1)*(o+1) + idx1*(o+1) + (idx2+1));
+
+                    poly_faces.push_back(left_face);
+                    poly_faces.push_back(right_face);
+                    idx2++;
+                }
+                idx1++;
+            }
+
+            // Correcting normals
+            // Front and back faces have normals in z direction
+            idx1 = 0;
+            while(idx1 < m+1){
+                idx2 = 0;
+                while(idx2 < n+1){
+                    normals[idx1*(n+1)*(o+1) + idx2*(o+1)] = glm::vec3(0.0f, 0.0f, 1.0f);
+                    normals[idx1*(n+1)*(o+1) + idx2*(o+1) + o] = glm::vec3(0.0f, 0.0f, -1.0f);
+                    idx2++;
+                }
+                idx1++;
+            }
+
+            // Top and bottom faces have normals in y direction
+            idx1 = 0;
+            while(idx1 < m+1){
+                idx2 = 0;
+                while(idx2 < o+1){
+                    normals[idx1*(n+1)*(o+1) + n*(o+1) + idx2] = glm::vec3(0.0f, 1.0f, 0.0f);
+                    normals[idx1*(n+1)*(o+1) + idx2] = glm::vec3(0.0f, -1.0f, 0.0f);
+                    idx2++;
+                }
+                idx1++;
+            }
+
+            // Left and right faces have normals in x direction
+            idx1 = 0;
+            while(idx1 < n+1){
+                idx2 = 0;
+                while(idx2 < o+1){
+                    normals[idx1*(o+1) + idx2] = glm::vec3(-1.0f, 0.0f, 0.0f);
+                    normals[m*(n+1)*(o+1) + idx1*(o+1) + idx2] = glm::vec3(1.0f, 0.0f, 0.0f);
+                    idx2++;
+                }
+                idx1++;
+            }
+            // Edge vertice normals are between the two faces
+            // x - direction edges
+            idx1 = 0;
+            while(idx1 < m+1){
+                // for the 4 edges
+                normals[idx1*(n+1)*(o+1)] = glm::normalize(glm::vec3(0.0f, -1.0f, 1.0f));
+                normals[idx1*(n+1)*(o+1) + o] = glm::normalize(glm::vec3(0.0f, -1.0f, -1.0f));
+                normals[idx1*(n+1)*(o+1) + n*(o+1)] = glm::normalize(glm::vec3(0.0f, 1.0f, 1.0f));
+                normals[idx1*(n+1)*(o+1) + n*(o+1) + o] = glm::normalize(glm::vec3(0.0f, 1.0f, -1.0f));
+                idx1++; 
+            }
+            // y - direction edges
+            idx1 = 0;
+            while(idx1 < n+1){
+                // for the 4 edges
+                normals[idx1*(o+1)] = glm::normalize(glm::vec3(-1.0f, 0.0f, -1.0f));
+                normals[idx1*(o+1) + m*(n+1)*(o+1)] = glm::normalize(glm::vec3(1.0f, 0.0f, -1.0f));
+                normals[idx1*(o+1) + o] = glm::normalize(glm::vec3(-1.0f, 0.0f, 1.0f));
+                normals[idx1*(o+1) + m*(n+1)*(o+1) + o] = glm::normalize(glm::vec3(1.0f, 0.0f, 1.0f));
+                idx1++; 
+            }
+            // z - direction edges
+            idx1 = 0;
+            while(idx1 < o+1){
+                // for the 4 edges
+                normals[idx1] = glm::normalize(glm::vec3(-1.0f, -1.0f, 0.0f));
+                normals[idx1 + m*(n+1)*(o+1)] = glm::normalize(glm::vec3(1.0f, -1.0f, 0.0f));
+                normals[idx1 + n*(o+1)] = glm::normalize(glm::vec3(-1.0f, 1.0f, 0.0f));
+                normals[idx1 + m*(n+1)*(o+1) + n*(o+1)] = glm::normalize(glm::vec3(1.0f, 1.0f, 0.0f));
+                idx1++; 
+            }
+
+            // Corner normals
+            normals[0] = glm::normalize(glm::vec3(-1.0f, -1.0f, -1.0f));
+            normals[m*(n+1)*(o+1)] = glm::normalize(glm::vec3(1.0f, -1.0f, -1.0f));
+            normals[n*(o+1)] = glm::normalize(glm::vec3(-1.0f, 1.0f, -1.0f));
+            normals[m*(n+1)*(o+1) + n*(o+1)] = glm::normalize(glm::vec3(1.0f, 1.0f, -1.0f));
+            normals[o] = glm::normalize(glm::vec3(-1.0f, -1.0f, 1.0f));
+            normals[m*(n+1)*(o+1) + o] = glm::normalize(glm::vec3(1.0f, -1.0f, 1.0f));
+            normals[n*(o+1) + o] = glm::normalize(glm::vec3(-1.0f, 1.0f, 1.0f));
+            normals[m*(n+1)*(o+1) + n*(o+1) + o] = glm::normalize(glm::vec3(1.0f, 1.0f, 1.0f));
+
+            // Create a set of used vertices
+            std::set<int> used_vertices;
+            for(const auto& face : poly_faces){
+                for(const auto& vertex : face){
+                    used_vertices.insert(vertex);
+                }
+            }
+
+            nv = 0;
+            // Create a map from old vertices to new vertices
+            std::map<int, int> old_to_new;
+            for(const auto& vertex : used_vertices){
+                old_to_new[vertex] = nv;
+                nv++;
+            }
+
+            // Now create the new vertices and normals
+            std::vector<glm::vec3> new_vertices(nv);
+            std::vector<glm::vec3> new_normals(nv);
+            for(const auto& vertex : used_vertices){
+                new_vertices[old_to_new[vertex]] = vertices[vertex];
+                new_normals[old_to_new[vertex]] = normals[vertex];
+            }
+
+            // Now update the faces
+            for(auto& face : poly_faces){
+                for(auto& vertex : face){
+                    vertex = old_to_new[vertex];
+                }
+            }
+
+            setMesh_new(nv, new_vertices.data(), poly_faces, new_normals.data());
+
+        }
+        
 
         
         void Viewer::view() {

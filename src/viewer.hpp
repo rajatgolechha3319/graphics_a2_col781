@@ -34,6 +34,7 @@ namespace COL781 {
             void setMesh_new(int nv, const glm::vec3* vertices, const std::vector<std::vector<int>> &poly_faces, const glm::vec3* normals = nullptr);
             void create_unit_rectangle(int m, int n);
             void create_sphere(int slices, int stacks);
+            void create_cube(int m, int n, int o);
             void view();
         private:
             COL781::OpenGL::Rasterizer r;
