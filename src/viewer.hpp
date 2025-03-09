@@ -35,8 +35,9 @@ namespace COL781 {
             void create_unit_rectangle(int m, int n);
             void create_sphere(int slices, int stacks);
             void create_cube(int m, int n, int o);
+            void load_obj_file(const std::string &filepath);
             void view();
-        private:
+            private:
             COL781::OpenGL::Rasterizer r;
             mesh my_mesh;
             COL781::OpenGL::ShaderProgram program;

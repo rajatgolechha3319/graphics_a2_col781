@@ -5,6 +5,7 @@
 #include <iostream>
 #include <queue>
 #include <stdexcept>
+#include <fstream>
 #include <glm/glm.hpp>
 
 #ifndef A2_HPP

@@ -101,6 +101,7 @@ int main() {
     // v.setMesh_testing(20, 10, 12, vertices, triangles, edges, normals);
     // v.create_unit_rectangle(10, 5);
     // v.create_sphere(40, 20);
-    v.create_cube(10, 10, 10);
+    // v.create_cube(10, 10, 10);
+    v.load_obj_file("/Users/darkelixir/Desktop/COL781/A2/my_v/meshes/spot_control_mesh.obj");
     v.view();
 }

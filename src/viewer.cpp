@@ -1,6 +1,25 @@
 #include "viewer.hpp"
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
+
+void split_string(std::string s, std::vector<std::string> &res){
+    res.clear();
+    std::string my = "";
+    int i=0;
+    while(i < s.size()){
+        if(s[i] == ' ' && my.size() > 0){
+            res.push_back(my);
+            my = "";
+        } else if(s[i] != ' '){
+            my += s[i];
+        }
+        i++;
+    }
+    if(my.size() > 0){
+        res.push_back(my);
+    }
+}
+
 namespace COL781 {
     namespace Viewer {
 
@@ -138,6 +157,52 @@ namespace COL781 {
             stagetransform = calculateModelMatrix(my_mesh.get_vertices_pos(), my_mesh.get_num_vertices());
         }
 
+        void Viewer::load_obj_file(const std::string &filepath){
+            std::ifstream file(filepath);
+            std::string line;
+            std::vector<glm::vec3> vertices;
+            std::vector<glm::vec3> vertice_normal;
+            std::vector<std::vector<int>> faces;
+            std::vector<std::string> temp;
+            while (std::getline(file, line)) {
+                split_string(line, temp);
+                if(temp[0] == "v"){
+                    // Assume that the vertices are in the format v x y z
+                    vertices.push_back(glm::vec3(std::stof(temp[1]), std::stof(temp[2]), std::stof(temp[3])));
+                }
+                else if(temp[0] == "vn"){
+                    // Assume that the normals are in the format vn x y z
+                    vertice_normal.push_back(glm::vec3(std::stof(temp[1]), std::stof(temp[2]), std::stof(temp[3])));
+                }
+                else if(temp[0] == "f"){
+                    // Faces are in the format f v1 v2 v3
+                    // or f v1/* v2/* v3/*
+                    std::vector<int> new_face;
+                    for(int i = 1; i < temp.size(); i++){
+                        std::string vertex = temp[i];
+                        std::string vertex_index = vertex.substr(0, vertex.find("/"));
+                        new_face.push_back(std::stoi(vertex_index) - 1);
+                    }
+                    faces.push_back(new_face);
+                }
+                else{
+                    std::cout << "Ignoring line: " << line << std::endl;
+                }
+            }
+            // Now set the mesh ensuring 0 normals if not present
+            if(vertice_normal.size() == 0){
+                // Set normals to 0
+                int nv = vertices.size();
+                int x = 0;
+                while(x < nv){
+                    vertice_normal.push_back(glm::vec3(0.0f, 0.0f, 0.0f));
+                    x++;
+                }
+            }
+            assert(vertices.size() == vertice_normal.size());
+            setMesh_new(vertices.size(), vertices.data(), faces, vertice_normal.data());
+        }
+        
         void Viewer::setMesh_new(int nv, const glm::vec3* vertices, const std::vector<std::vector<int>> &poly_faces, const glm::vec3* normals){
             if(normals == nullptr) {
                 glm::vec3* normalsz = new glm::vec3[nv];
@@ -166,7 +231,7 @@ namespace COL781 {
             std::cout << " Done face set construction" << std::endl;
 
             // Uncomment for internal variables
-            // my_mesh.print_ds();
+            my_mesh.print_ds();
 
 
             // Now update the Rasterizer
