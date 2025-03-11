@@ -304,6 +304,69 @@ void mesh::vertex_normal_update(int idx){
 
 }
 
+glm::vec3 mesh::get_umbrella_del(int idx) {
+    half_edge curr_edge = half_edge_vector[vertices[idx].half_edge_idx];
+    glm::vec3 res = glm::vec3(0.0f);
+    int he_idx = vertices[idx].half_edge_idx;
+    int curr_idx = he_idx;
+    int count = 0;
+
+    do {
+        // Move to the next edge in the loop
+        curr_idx = curr_edge.next_half_edge_idx;
+        curr_edge = half_edge_vector[curr_idx];
+
+        // Add neighbor contribution
+        res += vertices[curr_edge.vertex_idx].world_pos - vertices[idx].world_pos;
+        count++;
+
+        // Handle boundary case
+        if (curr_edge.twin_half_edge_idx == -1) {
+            // Traverse back to find the last boundary neighbor
+            int last_idx = he_idx;
+            half_edge last_edge = half_edge_vector[last_idx];
+            while (half_edge_vector[last_edge.next_half_edge_idx].vertex_idx != idx) {
+                last_idx = last_edge.next_half_edge_idx;
+                last_edge = half_edge_vector[last_idx];
+            }
+            res += vertices[last_edge.vertex_idx].world_pos - vertices[idx].world_pos;
+            count++;
+            break;
+        }
+
+        // Move to the twin edge
+        curr_idx = curr_edge.twin_half_edge_idx;
+        curr_edge = half_edge_vector[curr_idx];
+
+    } while (curr_idx != he_idx);
+
+    return count > 0 ? res / (float)count : glm::vec3(0.0f);
+}
+
+void mesh::umbrella_update_all(float delta, int iters) {
+
+    // Updated
+    int iter_loop = 0;
+    int v_iter = 0;
+    int v_lim = vertices.size();
+    while(iter_loop < iters){
+        v_iter = 0;
+        wh(v_iter, v_lim) {
+            vertices[v_iter].world_pos += delta * get_umbrella_del(v_iter);
+            vertices_pos[v_iter] = vertices[v_iter].world_pos;
+            v_iter++;
+        }
+        iter_loop++;
+    }
+    // Update vertex normals
+    v_iter = 0;
+    wh(v_iter, v_lim) {
+        vertex_normal_update(v_iter);
+        v_iter++;
+    }
+    
+}
+
 void mesh::triangulate_mesh(std::vector<std::vector<int>> &faces, int nf){
     // Triangulate the mesh
     for(auto x : faces){

@@ -70,6 +70,8 @@ class mesh{
     void update_vertex(int vertex_idx, int curr_half_edge_idx);
     void face_normal_gen(int idx);
     void vertex_normal_update(int idx);
+    glm::vec3 get_umbrella_del(int idx);
+    void umbrella_update_all(float delta, int iters);
 
 
     // Constructors

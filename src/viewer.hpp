@@ -35,8 +35,10 @@ namespace COL781 {
             void create_unit_rectangle(int m, int n);
             void create_sphere(int slices, int stacks);
             void create_cube(int m, int n, int o);
+            void create_noisy_cube(int m, int n, int o);
+            void umbrella_update_mesh(float delta, int iters);
             void load_obj_file(const std::string &filepath);
-            void view();
+            void view(bool flag=false);
             private:
             COL781::OpenGL::Rasterizer r;
             mesh my_mesh;
