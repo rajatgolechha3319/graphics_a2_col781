@@ -51,7 +51,10 @@ class mesh{
     // Internal variables
     std::map<std::pair<int,int>, int> edge_to_half_edge; // This way we know if there is any pre-existing edge on that vertex pair that can be twin of the current edge
     std::set<std::pair<int,int>> boundary_edges; // This will be used to store the boundary edges
+    std::map<std::pair<int,int>, std::pair<int,int>> boundary_edge_to_face; // This will be used to store the faces corresponding to the boundary edges
     std::vector<glm::ivec2> boundary_edges_vec; // This will be used to store the boundary edges in vector form
+    std::vector<std::vector<int>> faces_store; // This will be used to store the faces in vector form before triangulation
+    std::map<int,int> face_idx_tri_to_poly; // This will be used to store the mapping from triangle face index to polygon face index
     
     // For getters
     std::vector<glm::vec3> vertices_pos; // Derived
@@ -72,6 +75,8 @@ class mesh{
     void vertex_normal_update(int idx);
     glm::vec3 get_umbrella_del(int idx);
     void umbrella_update_all(float delta, int iters);
+    std::pair<std::vector<glm::vec3>, std::vector<std::vector<int>>>  catmull_clark_subdivision();
+    void vertex_normal_update_mode_all();
 
 
     // Constructors
@@ -82,6 +87,7 @@ class mesh{
 
     // Debugging functions
     void print_ds();
+    void clear_mesh();
 
     // Getters
     glm::vec3* get_vertices_pos();

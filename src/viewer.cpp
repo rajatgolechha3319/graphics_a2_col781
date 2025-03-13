@@ -221,7 +221,17 @@ namespace COL781 {
             assert(vertices.size() == vertice_normal.size());
             setMesh_new(vertices.size(), vertices.data(), faces, vertice_normal.data());
         }
-        
+
+        void Viewer::catmull_clark(){
+            // Call the catmull clark subdivision
+            std::pair<std::vector<glm::vec3>, std::vector<std::vector<int>>> new_mesh = my_mesh.catmull_clark_subdivision();
+
+            // Now set the mesh with normals as nullptr
+            setMesh_new(new_mesh.first.size(), new_mesh.first.data(), new_mesh.second, nullptr);
+            // Compute the normals
+            my_mesh.vertex_normal_update_mode_all();
+        }
+
         void Viewer::setMesh_new(int nv, const glm::vec3* vertices, const std::vector<std::vector<int>> &poly_faces, const glm::vec3* normals){
             if(normals == nullptr) {
                 glm::vec3* normalsz = new glm::vec3[nv];

@@ -31,6 +31,7 @@ namespace COL781 {
             bool initialize(const std::string &title, int width, int height);
             void setMesh(int nv, int nt, int ne, const glm::vec3* vertices, const glm::ivec3* triangles, const glm::ivec2* edges, const glm::vec3* normals = nullptr);
             void setMesh_testing(int nv, int nt, int ne, const glm::vec3* vertices, const glm::ivec3* triangles, const glm::ivec2* edges, const glm::vec3* normals = nullptr);
+            void catmull_clark();
             void setMesh_new(int nv, const glm::vec3* vertices, const std::vector<std::vector<int>> &poly_faces, const glm::vec3* normals = nullptr);
             void create_unit_rectangle(int m, int n);
             void create_sphere(int slices, int stacks);

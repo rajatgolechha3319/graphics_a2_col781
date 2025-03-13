@@ -304,6 +304,15 @@ void mesh::vertex_normal_update(int idx){
 
 }
 
+void mesh::vertex_normal_update_mode_all(){
+    int v_iter = 0;
+    int v_lim = vertices.size();
+    wh(v_iter, v_lim){
+        vertex_normal_update(v_iter);
+        v_iter++;
+    }
+}
+
 glm::vec3 mesh::get_umbrella_del(int idx) {
     half_edge curr_edge = half_edge_vector[vertices[idx].half_edge_idx];
     glm::vec3 res = glm::vec3(0.0f);
@@ -367,16 +376,173 @@ void mesh::umbrella_update_all(float delta, int iters) {
     
 }
 
+std::pair<std::vector<glm::vec3>, std::vector<std::vector<int>>> mesh::catmull_clark_subdivision(){
+    // First we will update the vertices of existing mesh
+    // Step 1 : Compute Face Points for each face
+    std::vector<glm::vec3> face_points;
+    // We will be using faces store for this
+
+    // Construce boundary_edge_to_face
+    std::map<std::pair<int,int>,int> vis;
+    int iter1 = 0;
+    int iter2 = 0;
+    wh(iter1,faces_store.size()){
+        auto face = faces_store[iter1];
+        glm::vec3 face_point = glm::vec3(0.0f);
+        for(auto vertex : face){
+            face_point += vertices[vertex].world_pos;
+        }
+        // Iterate over all the edges and add this face as the first if not visited else second
+        int n_f = face.size();
+        iter2 = 0;
+        wh(iter2,n_f){
+            auto edge_key = get_edge(face[iter2], face[(iter2+1)%n_f]);
+            if (vis.count(edge_key)) {
+                boundary_edge_to_face[edge_key].second = iter1;
+            } else {
+                boundary_edge_to_face[edge_key] = std::make_pair(iter1, -1);
+                vis[edge_key] = 42;
+            }
+            iter2++;
+        }
+        face_point /= (float)face.size();
+        face_points.push_back(face_point);
+        iter1++;
+    }
+
+    // Print the face points with index
+    iter1 = 0;
+    wh(iter1, face_points.size()){
+        std::cout << iter1 << " " << face_points[iter1].x << " " << face_points[iter1].y << " " << face_points[iter1].z << "\n";
+        iter1++;
+    }
+
+
+    // Step 2 : Compute Edge Points for each edge
+    // Need to do this only for boundary edges
+    std::map<std::pair<int,int>, glm::vec3> edge_points;
+    for(auto edge : boundary_edges){
+        glm::vec3 edge_point = 0.25f * (
+            vertices[edge.first].world_pos +
+            vertices[edge.second].world_pos +
+            // Face 1
+            face_points[boundary_edge_to_face[get_edge(edge.first, edge.second)].first] +
+            // Face 2
+            face_points[boundary_edge_to_face[get_edge(edge.first, edge.second)].second]
+        );
+        // std::cout << "Computation for edge " << edge.first << " " << edge.second << " \n";
+        // std::cout << " V1 " << vertices[edge.first].world_pos.x << " " << vertices[edge.first].world_pos.y << " " << vertices[edge.first].world_pos.z << "\n";
+        // std::cout << " V2 " << vertices[edge.second].world_pos.x << " " << vertices[edge.second].world_pos.y << " " << vertices[edge.second].world_pos.z << "\n";
+        // std::cout << " F1 " << face_points[boundary_edge_to_face[get_edge(edge.first, edge.second)].first].x << " " << face_points[boundary_edge_to_face[get_edge(edge.first, edge.second)].first].y << " " << face_points[boundary_edge_to_face[get_edge(edge.first, edge.second)].first].z << "\n";
+        // std::cout << " F2 " << face_points[boundary_edge_to_face[get_edge(edge.first, edge.second)].second].x << " " << face_points[boundary_edge_to_face[get_edge(edge.first, edge.second)].second].y << " " << face_points[boundary_edge_to_face[get_edge(edge.first, edge.second)].second].z << "\n";
+        edge_points[get_edge(edge.first,edge.second)] = edge_point;
+    }
+
+    for(auto edge_ : edge_points){
+        std::cout << edge_.first.first << " " << edge_.first.second << " " << edge_.second.x << " " << edge_.second.y << " " << edge_.second.z << "\n";
+    }
+
+    // Step 3 : Compute Vertex Points for each vertex
+    // We will do this in a fast way iterating over the faces and creating a sum total for each vertex
+    int v = get_num_vertices();
+    std::vector<glm::vec3> vertice_face_sum(v, glm::vec3(0.0f));
+    std::vector<int> vertice_face_count(v, 0);
+    std::vector<glm::vec3> vertice_edge_sum(v, glm::vec3(0.0f));
+    std::vector<int> vertice_edge_count(v, 0);
+    int face_size;
+    int n_faces = faces_store.size();
+    int j = 0;
+    int i = 0;
+    wh(j, n_faces){
+        // These are the original faces
+        face_size = faces_store[j].size();
+        i = 0;
+        wh(i, face_size){
+            // Add face point
+            vertice_face_sum[faces_store[j][i]] += face_points[j];
+            vertice_face_count[faces_store[j][i]]++;
+            i++;
+        }
+        j++;
+    }
+
+    // Now go over edge points map to update the edge points
+    for(auto edge : edge_points){
+        vertice_edge_sum[edge.first.first] += edge.second;
+        vertice_edge_sum[edge.first.second] += edge.second;
+        vertice_edge_count[edge.first.first]++;
+        vertice_edge_count[edge.first.second]++;
+    }
+
+    // Now update the vertices
+    std::vector<glm::vec3> new_vertices;
+    j = 0;
+    wh(j, v){
+        // Compute the new vertex
+        glm::vec3 new_vertex = (
+            ((vertice_face_sum[j]) / (float)(vertice_face_count[j]) +
+            (vertice_edge_sum[j]) / (float)(vertice_edge_count[j]) * 2.0f +
+            (vertices[j].world_pos) * (float)(vertice_face_count[j] - 3.0f)) / (float)(vertice_face_count[j])
+        );
+        new_vertices.push_back(new_vertex);
+        j++;
+    }
+    // Add the edge points to the new vertices
+    std::map<std::pair<int,int>, int> edge_point_idx;
+    for(auto edge : edge_points){
+        edge_point_idx[edge.first] = new_vertices.size();
+        new_vertices.push_back(edge.second);
+    }
+    // Add the face points to the new vertices
+    std::map<int, int> face_point_idx;
+    j = 0;
+    wh(j, n_faces){
+        face_point_idx[j] = new_vertices.size();
+        new_vertices.push_back(face_points[j]);
+        j++;
+    }
+
+    std::vector<std::vector<int>> new_faces;
+    // Process each face for the new mesh
+    j = 0;
+    wh(j, n_faces){
+        // These were the original faces
+        face_size = faces_store[j].size();
+        i = 0;
+        wh(i, face_size){
+            std::vector<int> new_face;
+            new_face.push_back(faces_store[j][i]);
+            // Edge point from [j][i] to [j][(i+1)%face_size]
+            new_face.push_back(edge_point_idx[get_edge(faces_store[j][i], faces_store[j][(i+1)%face_size])]);
+            // Face point of face j
+            new_face.push_back(face_point_idx[j]);
+            // Edge point from [j][(i+face_size-1)%face_size] to [j][i]
+            new_face.push_back(edge_point_idx[get_edge(faces_store[j][(i+face_size-1)%face_size], faces_store[j][i])]);
+            new_faces.push_back(new_face);
+            i++;
+        }
+        j++;
+    }
+    clear_mesh();
+
+    // Return the new vertices and faces
+    return std::make_pair(new_vertices, new_faces);
+}
+
 void mesh::triangulate_mesh(std::vector<std::vector<int>> &faces, int nf){
     // Triangulate the mesh
     for(auto x : faces){
+        std::vector<int> temp_face;
         for(auto y : x){
             std::cout << y << ' ';
+            temp_face.push_back(y);
         }
         std::cout << '\n';
+        faces_store.push_back(temp_face);
     }
     std::vector<std::vector<int>> new_faces;
     int face_idx = 0;
+    int tri_face_idx = 0;
     wh(face_idx, nf){
         const std::vector<int>& face = faces[face_idx];
         int face_size = face.size();
@@ -384,6 +550,7 @@ void mesh::triangulate_mesh(std::vector<std::vector<int>> &faces, int nf){
         int j = 0;
         wh(j, face_size){
             boundary_edges.insert(std::make_pair(face[j], face[(j+1)%face_size]));
+            // Check if boundary edge is already present in the map
             j++;
         }
         if(face_size > 3){
@@ -397,11 +564,15 @@ void mesh::triangulate_mesh(std::vector<std::vector<int>> &faces, int nf){
                 // Push to triangles ivec
                 new_faces.push_back(new_face);
                 triangles_ivec.push_back(glm::ivec3(face[0], face[i+1], face[i+2]));
+                face_idx_tri_to_poly[tri_face_idx] = face_idx;
+                tri_face_idx++;
                 i++;
             }
         } else {
             new_faces.push_back(face);
             triangles_ivec.push_back(glm::ivec3(face[0], face[1], face[2]));
+            face_idx_tri_to_poly[tri_face_idx] = face_idx;
+            tri_face_idx++;
         }
         face_idx++;
     }
@@ -528,6 +699,21 @@ void mesh::print_ds() {
         std::cout << "Edge (" << edge.first << ", " << edge.second << ") -> Half-Edge Index = " << half_edge_idx << std::endl;
     }
 
+    // // Print boundary edges and the mapping to faces
+    // std::cout << "\nBoundary Edges and Mapping to Faces:" << std::endl;
+    // for (const auto& entry : boundary_edge_to_face) {
+    //     const std::pair<int, int>& edge = entry.first;
+    //     const std::pair<int, int>& face_pair = entry.second;
+    //     std::cout << "Boundary Edge (" << edge.first << ", " << edge.second << ") -> Face Indices = (" << face_pair.first << ", " << face_pair.second << ")" << std::endl;
+    // }
+
+    // // Print boundary edges vector
+    // std::cout << "\nBoundary Edges:" << std::endl;
+    // for (size_t i = 0; i < boundary_edges_vec.size(); ++i) {
+    //     const glm::ivec2& edge = boundary_edges_vec[i];
+    //     std::cout << "Boundary Edge " << i << ": (" << edge.x << ", " << edge.y << ")" << std::endl;
+    // }
+
     std::cout << "===== End of Mesh Data Structure =====" << std::endl;
 }
 
@@ -558,4 +744,19 @@ int mesh::get_num_faces(){
 
 int mesh::get_num_boundary_edges(){
     return boundary_edges_vec.size();
+}
+
+void mesh::clear_mesh(){
+    edge_to_half_edge.clear();
+    boundary_edges.clear();
+    boundary_edge_to_face.clear();
+    boundary_edges_vec.clear();
+    faces_store.clear();
+    face_idx_tri_to_poly.clear();
+    vertices_pos.clear();
+    vertices_normal.clear();
+    triangles_ivec.clear();
+    vertices.clear();
+    half_edge_vector.clear();
+    faces.clear();
 }
