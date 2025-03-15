@@ -1,8 +1,8 @@
 #ifndef VIEWER_HPP
 #define VIEWER_HPP
 
-#include "hw.hpp"
-#include "a2.hpp"
+#include "../hw/hw.hpp"
+#include "../../a2/a2.hpp"
 namespace COL781 {
     namespace Viewer {
 

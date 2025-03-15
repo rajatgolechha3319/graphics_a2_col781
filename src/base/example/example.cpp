@@ -1,4 +1,4 @@
-#include "viewer.hpp"
+#include "../viewer/viewer.hpp"
 
 namespace V = COL781::Viewer;
 using namespace glm;
@@ -103,8 +103,8 @@ int main() {
     // v.create_unit_rectangle(10, 5);
     // v.create_sphere(11, 5);
     // v.create_cube(5, 5, 5);
-    // v.catmull_clark();
-    // v.catmull_clark();
+     v.catmull_clark();
+     v.catmull_clark();
     // v.create_noisy_cube(10, 10, 10);
     // v.view(true);
     v.view();
