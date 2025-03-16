@@ -98,14 +98,17 @@ int main() {
         return EXIT_FAILURE;
     }
 
-    v.load_obj_file("/Users/darkelixir/Desktop/COL781/A2/my_v/meshes/spot_control_mesh.obj");
+//    v.load_obj_file("/Users/darkelixir/Desktop/COL781/A2/my_v/meshes/bunny_1k.obj");
+//    v.load_obj_file("/Users/darkelixir/Desktop/COL781/A2/my_v/meshes/cube.obj");
+   v.load_obj_file("/Users/darkelixir/Desktop/COL781/A2/my_v/meshes/spot_control_mesh.obj");
     // v.setMesh_testing(20, 10, 12, vertices, triangles, edges, normals);
     // v.create_unit_rectangle(10, 5);
-    // v.create_sphere(11, 5);
-    // v.create_cube(5, 5, 5);
-     v.catmull_clark();
-     v.catmull_clark();
+    // v.create_sphere(11, 50);
+    // v.create_cube_new(3, 3, 3);
+    // v.create_noisy_cube_new(10, 10, 10);
+    //  v.catmull_clark();
+    // v.catmull_clark();
     // v.create_noisy_cube(10, 10, 10);
-    // v.view(true);
-    v.view();
+    //  v.view(true); // for umbrella
+   v.view();
 }

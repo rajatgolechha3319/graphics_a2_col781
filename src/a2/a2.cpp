@@ -599,6 +599,7 @@ void mesh::face_set_construction(const std::vector<std::vector<int>> &in_faces, 
 
 
     std::vector<std::vector<int>> new_faces = new_consistent_faces(in_faces, nf);
+    // std::vector<std::vector<int>> new_faces = in_faces;
 
     // std::cout << " Done consistent ordering" << std::endl;
 

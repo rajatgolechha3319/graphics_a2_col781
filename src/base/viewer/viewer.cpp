@@ -260,8 +260,7 @@ namespace COL781 {
             std::cout << " Done face set construction" << std::endl;
 
             // Uncomment for internal variables
-            my_mesh.print_ds();
-
+            // my_mesh.print_ds();
 
             // Now update the Rasterizer
             r.setVertexAttribs(object, 0, my_mesh.get_num_vertices() , my_mesh.get_vertices_pos());
@@ -272,6 +271,8 @@ namespace COL781 {
             r.setEdgeIndices(wireframe, my_mesh.get_num_boundary_edges(), my_mesh.get_boundary_edges());
             stagetransform = calculateModelMatrix(my_mesh.get_vertices_pos(), my_mesh.get_num_vertices());
             std::cout << " Done setting mesh" << std::endl;
+
+            my_mesh.print_ds();
         }
 
         void Viewer::create_unit_rectangle(int m, int n){
@@ -412,7 +413,7 @@ namespace COL781 {
                 while(idx2 < n+1){
                     idx3 = 0;
                     while(idx3 < o+1){
-                        vertices.push_back(glm::vec3((float)idx2/(float)n, (float)idx1/(float)m, (float)idx3/(float)o));
+                        vertices.push_back(glm::vec3((float)idx2/(float)n - 0.5f , (float)idx1/(float)m - 0.5f , (float)idx3/(float)o - 0.5f ));
                         normals.push_back(glm::vec3(0.0f, 0.0f, 0.0f));
                         idx3++;
                     }
@@ -500,8 +501,9 @@ namespace COL781 {
             while(idx1 < m+1){
                 idx2 = 0;
                 while(idx2 < n+1){
-                    normals[idx1*(n+1)*(o+1) + idx2*(o+1)] = glm::vec3(0.0f, 0.0f, 1.0f);
-                    normals[idx1*(n+1)*(o+1) + idx2*(o+1) + o] = glm::vec3(0.0f, 0.0f, -1.0f);
+                    // Correction
+                    normals[idx1*(n+1)*(o+1) + idx2*(o+1)] = glm::vec3(0.0f, 0.0f, -1.0f);
+                    normals[idx1*(n+1)*(o+1) + idx2*(o+1) + o] = glm::vec3(0.0f, 0.0f, 1.0f);
                     idx2++;
                 }
                 idx1++;
@@ -604,7 +606,172 @@ namespace COL781 {
             }
 
             setMesh_new(nv, new_vertices.data(), poly_faces, new_normals.data());
+            my_mesh.vertex_normal_update_mode_all();
 
+        }
+        
+        void Viewer::create_cube_new(int m, int n, int o){
+            // Create (m+1)*(n+1)*(o+1) vertices
+            // Centered at origin
+            int idx1 = 0; // for x
+            int idx2 = 0; // for y
+            int idx3 = 0; // for z
+        
+            // Create vertices
+            std::vector<glm::vec3> vertices;
+            while(idx1 < m+1){
+                idx2 = 0;
+                while(idx2 < n+1){
+                    idx3 = 0;
+                    while(idx3 < o+1){
+                        vertices.push_back(glm::vec3(
+                            (float)idx1/(float)m - 0.5f, 
+                            (float)idx2/(float)n - 0.5f, 
+                            (float)idx3/(float)o - 0.5f
+                        ));
+                        idx3++;
+                    }
+                    idx2++;
+                }
+                idx1++;
+            }
+        
+            // Create faces
+            std::vector<std::vector<int>> poly_faces;
+        
+            // Front face (Positive z)
+            idx2 = 0;
+            while(idx2 < n){
+                idx1 = 0;
+                while(idx1 < m){
+                    std::vector<int> front_face;
+                    int base = idx1 + idx2 * (m+1) + o * (m+1) * (n+1);  // z = o
+                    front_face.push_back(base);                    // bottom-left
+                    front_face.push_back(base + (m+1));           // bottom-right
+                    front_face.push_back(base + (m+1) + 1);       // top-right
+                    front_face.push_back(base + 1);               // top-left
+                    poly_faces.push_back(front_face);
+                    idx1++;
+                }
+                idx2++;
+            }
+        
+            // Back face (Negative z)
+            idx2 = 0;
+            while(idx2 < n){
+                idx1 = 0;
+                while(idx1 < m){
+                    std::vector<int> back_face;
+                    int base = idx1 + idx2 * (m+1);  // z = 0
+                    back_face.push_back(base);                    // bottom-left
+                    back_face.push_back(base + 1);                // bottom-right
+                    back_face.push_back(base + (m+1) + 1);        // top-right
+                    back_face.push_back(base + (m+1));            // top-left
+                    poly_faces.push_back(back_face);
+                    idx1++;
+                }
+                idx2++;
+            }
+        
+            // Left face (Negative x)
+            idx2 = 0;
+            while(idx2 < n){
+                idx3 = 0;
+                while(idx3 < o){
+                    std::vector<int> left_face;
+                    int base = idx2 * (m+1) + idx3 * (m+1) * (n+1);  // x = 0
+                    left_face.push_back(base);                    // bottom-left
+                    left_face.push_back(base + (m+1)*(n+1));      // bottom-right
+                    left_face.push_back(base + (m+1)*(n+1) + (m+1));  // top-right
+                    left_face.push_back(base + (m+1));            // top-left
+                    poly_faces.push_back(left_face);
+                    idx3++;
+                }
+                idx2++;
+            }
+        
+            // Right face (Positive x)
+            idx2 = 0;
+            while(idx2 < n){
+                idx3 = 0;
+                while(idx3 < o){
+                    std::vector<int> right_face;
+                    int base = m + idx2 * (m+1) + idx3 * (m+1) * (n+1);  // x = m
+                    right_face.push_back(base);                   // bottom-left
+                    right_face.push_back(base + (m+1));           // bottom-right
+                    right_face.push_back(base + (m+1)*(n+1) + (m+1));  // top-right
+                    right_face.push_back(base + (m+1)*(n+1));     // top-left
+                    poly_faces.push_back(right_face);
+                    idx3++;
+                }
+                idx2++;
+            }
+        
+            // Bottom face (Negative y)
+            idx1 = 0;
+            while(idx1 < m){
+                idx3 = 0;
+                while(idx3 < o){
+                    std::vector<int> bottom_face;
+                    int base = idx1 + idx3 * (m+1) * (n+1);  // y = 0
+                    bottom_face.push_back(base);                  // bottom-left
+                    bottom_face.push_back(base + (m+1)*(n+1));    // bottom-right
+                    bottom_face.push_back(base + (m+1)*(n+1) + 1); // top-right
+                    bottom_face.push_back(base + 1);              // top-left
+                    poly_faces.push_back(bottom_face);
+                    idx3++;
+                }
+                idx1++;
+            }
+        
+            // Top face (Positive y)
+            idx1 = 0;
+            while(idx1 < m){
+                idx3 = 0;
+                while(idx3 < o){
+                    std::vector<int> top_face;
+                    int base = idx1 + n * (m+1) + idx3 * (m+1) * (n+1);  // y = n
+                    top_face.push_back(base);                    // bottom-left
+                    top_face.push_back(base + 1);                // bottom-right
+                    top_face.push_back(base + (m+1)*(n+1) + 1);   // top-right
+                    top_face.push_back(base + (m+1)*(n+1));      // top-left
+                    poly_faces.push_back(top_face);
+                    idx3++;
+                }
+                idx1++;
+            }
+
+            // Create a set of used vertices
+            std::set<int> used_vertices;
+            for(const auto& face : poly_faces){
+                for(const auto& vertex : face){
+                    used_vertices.insert(vertex);
+                }
+            }
+
+            int nv = 0;
+            // Create a map from old vertices to new vertices
+            std::map<int, int> old_to_new;
+            for(const auto& vertex : used_vertices){
+                old_to_new[vertex] = nv;
+                nv++;
+            }
+
+            // Now create the new vertices and new faces
+            std::vector<glm::vec3> new_vertices(nv);
+            std::vector<glm::vec3> new_normals(nv);
+            for(const auto& vertex : used_vertices){
+                new_vertices[old_to_new[vertex]] = vertices[vertex];
+                new_normals[old_to_new[vertex]] = glm::vec3(0.0f, 0.0f, 0.0f);
+            }
+            // Now update the faces
+            for(auto& face : poly_faces){
+                for(auto& vertex : face){
+                    vertex = old_to_new[vertex];
+                }
+            }
+
+            setMesh_new(nv, new_vertices.data(), poly_faces, new_normals.data());
         }
         
         void Viewer::create_noisy_cube(int m, int n, int o){
@@ -828,6 +995,178 @@ namespace COL781 {
 
         }
         
+        void Viewer::create_noisy_cube_new(int m, int n, int o){
+            // Create (m+1)*(n+1)*(o+1) vertices
+            // Centered at origin
+            int idx1 = 0; // for x
+            int idx2 = 0; // for y
+            int idx3 = 0; // for z
+            float cube_side = 1.0f;
+
+            // Create (m+1)*(n+1)*(o+1) vertices
+            float noise_lim  = 0.4f;
+            std::uniform_real_distribution<float> dist_m(-noise_lim/(float)m, noise_lim/(float)m);
+            std::uniform_real_distribution<float> dist_n(-noise_lim/(float)n, noise_lim/(float)n);
+            std::uniform_real_distribution<float> dist_o(-noise_lim/(float)o, noise_lim/(float)o);
+            // Create vertices
+            std::vector<glm::vec3> vertices;
+            glm::vec3 noise;
+            while(idx1 < m+1){
+                idx2 = 0;
+                while(idx2 < n+1){
+                    idx3 = 0;
+                    while(idx3 < o+1){
+                        noise = glm::vec3(dist_m(gen),dist_n(gen),dist_o(gen));
+                        vertices.push_back(glm::vec3(
+                            (float)idx1/(float)m - 0.5f, 
+                            (float)idx2/(float)n - 0.5f, 
+                            (float)idx3/(float)o - 0.5f
+                        ) + noise);
+                        idx3++;
+                    }
+                    idx2++;
+                }
+                idx1++;
+            }
+        
+            // Create faces
+            std::vector<std::vector<int>> poly_faces;
+        
+            // Front face (Positive z)
+            idx2 = 0;
+            while(idx2 < n){
+                idx1 = 0;
+                while(idx1 < m){
+                    std::vector<int> front_face;
+                    int base = idx1 + idx2 * (m+1) + o * (m+1) * (n+1);  // z = o
+                    front_face.push_back(base);                    // bottom-left
+                    front_face.push_back(base + (m+1));           // bottom-right
+                    front_face.push_back(base + (m+1) + 1);       // top-right
+                    front_face.push_back(base + 1);               // top-left
+                    poly_faces.push_back(front_face);
+                    idx1++;
+                }
+                idx2++;
+            }
+        
+            // Back face (Negative z)
+            idx2 = 0;
+            while(idx2 < n){
+                idx1 = 0;
+                while(idx1 < m){
+                    std::vector<int> back_face;
+                    int base = idx1 + idx2 * (m+1);  // z = 0
+                    back_face.push_back(base);                    // bottom-left
+                    back_face.push_back(base + 1);                // bottom-right
+                    back_face.push_back(base + (m+1) + 1);        // top-right
+                    back_face.push_back(base + (m+1));            // top-left
+                    poly_faces.push_back(back_face);
+                    idx1++;
+                }
+                idx2++;
+            }
+        
+            // Left face (Negative x)
+            idx2 = 0;
+            while(idx2 < n){
+                idx3 = 0;
+                while(idx3 < o){
+                    std::vector<int> left_face;
+                    int base = idx2 * (m+1) + idx3 * (m+1) * (n+1);  // x = 0
+                    left_face.push_back(base);                    // bottom-left
+                    left_face.push_back(base + (m+1)*(n+1));      // bottom-right
+                    left_face.push_back(base + (m+1)*(n+1) + (m+1));  // top-right
+                    left_face.push_back(base + (m+1));            // top-left
+                    poly_faces.push_back(left_face);
+                    idx3++;
+                }
+                idx2++;
+            }
+        
+            // Right face (Positive x)
+            idx2 = 0;
+            while(idx2 < n){
+                idx3 = 0;
+                while(idx3 < o){
+                    std::vector<int> right_face;
+                    int base = m + idx2 * (m+1) + idx3 * (m+1) * (n+1);  // x = m
+                    right_face.push_back(base);                   // bottom-left
+                    right_face.push_back(base + (m+1));           // bottom-right
+                    right_face.push_back(base + (m+1)*(n+1) + (m+1));  // top-right
+                    right_face.push_back(base + (m+1)*(n+1));     // top-left
+                    poly_faces.push_back(right_face);
+                    idx3++;
+                }
+                idx2++;
+            }
+        
+            // Bottom face (Negative y)
+            idx1 = 0;
+            while(idx1 < m){
+                idx3 = 0;
+                while(idx3 < o){
+                    std::vector<int> bottom_face;
+                    int base = idx1 + idx3 * (m+1) * (n+1);  // y = 0
+                    bottom_face.push_back(base);                  // bottom-left
+                    bottom_face.push_back(base + (m+1)*(n+1));    // bottom-right
+                    bottom_face.push_back(base + (m+1)*(n+1) + 1); // top-right
+                    bottom_face.push_back(base + 1);              // top-left
+                    poly_faces.push_back(bottom_face);
+                    idx3++;
+                }
+                idx1++;
+            }
+        
+            // Top face (Positive y)
+            idx1 = 0;
+            while(idx1 < m){
+                idx3 = 0;
+                while(idx3 < o){
+                    std::vector<int> top_face;
+                    int base = idx1 + n * (m+1) + idx3 * (m+1) * (n+1);  // y = n
+                    top_face.push_back(base);                    // bottom-left
+                    top_face.push_back(base + 1);                // bottom-right
+                    top_face.push_back(base + (m+1)*(n+1) + 1);   // top-right
+                    top_face.push_back(base + (m+1)*(n+1));      // top-left
+                    poly_faces.push_back(top_face);
+                    idx3++;
+                }
+                idx1++;
+            }
+
+            // Create a set of used vertices
+            std::set<int> used_vertices;
+            for(const auto& face : poly_faces){
+                for(const auto& vertex : face){
+                    used_vertices.insert(vertex);
+                }
+            }
+
+            int nv = 0;
+            // Create a map from old vertices to new vertices
+            std::map<int, int> old_to_new;
+            for(const auto& vertex : used_vertices){
+                old_to_new[vertex] = nv;
+                nv++;
+            }
+
+            // Now create the new vertices and new faces
+            std::vector<glm::vec3> new_vertices(nv);
+            std::vector<glm::vec3> new_normals(nv);
+            for(const auto& vertex : used_vertices){
+                new_vertices[old_to_new[vertex]] = vertices[vertex];
+                new_normals[old_to_new[vertex]] = glm::vec3(0.0f, 0.0f, 0.0f);
+            }
+            // Now update the faces
+            for(auto& face : poly_faces){
+                for(auto& vertex : face){
+                    vertex = old_to_new[vertex];
+                }
+            }
+
+            setMesh_new(nv, new_vertices.data(), poly_faces, new_normals.data());
+        }
+
         void Viewer::view(bool flag) {
             // The transformation matrix.
             glm::mat4 model = stagetransform;
@@ -853,7 +1192,7 @@ namespace COL781 {
                     auto time_elapsed = std::chrono::high_resolution_clock::now() - time_now;
                     if(time_elapsed > update_interval){
                         time_now = std::chrono::high_resolution_clock::now();
-                        umbrella_update_mesh(delta,10);
+                        umbrella_update_mesh(delta,3);
                         std::cout << " Updating Mesh " << std::endl;
                         // my_mesh.print_ds();
                     }
