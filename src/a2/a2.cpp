@@ -7,6 +7,44 @@ std::pair<int, int> get_edge(int i1, int i2) {
     return std::make_pair(std::min(i1, i2), std::max(i1, i2));
 }
 
+bool in_triangle(const glm::vec3 &v1, const glm::vec3 &v2, const glm::vec3 &v3, const glm::vec3 &pt) {
+    // Compute the triangle's normal
+    glm::vec3 normal = glm::normalize(glm::cross(v2 - v1, v3 - v1));
+
+    // Compute cross products to check if point is on the same side of all edges
+    glm::vec3 edge1 = glm::cross(v2 - v1, pt - v1);
+    glm::vec3 edge2 = glm::cross(v3 - v2, pt - v2);
+    glm::vec3 edge3 = glm::cross(v1 - v3, pt - v3);
+
+    // If all cross products have the same orientation relative to the normal, pt is inside
+    return (glm::dot(edge1, normal) >= 0) && 
+           (glm::dot(edge2, normal) >= 0) && 
+           (glm::dot(edge3, normal) >= 0);
+}
+
+float point_to_segment_distance(const glm::vec3 &a, const glm::vec3 &b, const glm::vec3 &c) {
+    // Vector from a to b
+    glm::vec3 ab = b - a;
+    glm::vec3 ac = c - a;
+    
+    // Project ac onto ab using the dot product
+    float t = glm::dot(ac, ab) / glm::dot(ab, ab);
+    
+    // Check if projection is on the segment
+    if (t < 0.0f) {
+        // Projection is before point a, closest point is a
+        return glm::length(c - a);
+    } else if (t > 1.0f) {
+        // Projection is after point b, closest point is b
+        return glm::length(c - b);
+    } else {
+        // Projection is on the segment, calculate the closest point
+        glm::vec3 projection = a + t * ab;
+        // Return the distance from c to the projection
+        return glm::length(c - projection);
+    }
+}
+
 // Function to find edge direction in a face
 // Returns true if edge is (v1->v2), false if (v2->v1)
 bool get_edge_direction(const std::vector<int>& face, int v1, int v2) {
@@ -656,6 +694,162 @@ void mesh::face_set_construction(const std::vector<std::vector<int>> &in_faces, 
         v_iter++;
     }
 
+}
+
+void mesh::map_maker(){
+    // In this we will create old to new face index map
+    int poly_face_idx = 0;
+    int nf = faces_store.size();
+    int tri_face_idx = 0;
+    wh(poly_face_idx, nf){
+        face_idx_poly_to_tri[poly_face_idx] = tri_face_idx;
+        poly_face_idx++;
+        // Increment tri-face by face_size - 2
+        tri_face_idx += faces_store[poly_face_idx].size() - 2;
+    }    
+}
+
+std::pair<std::vector<glm::vec3>, std::vector<std::vector<int>>> mesh::extrude_face(int face_idx, float d){
+    // We need to construct a new mesh with the extruded face
+    // First we fetch the normal of the face
+    glm::vec3 normal = faces[face_idx_poly_to_tri[face_idx]].face_normal;
+    // We will remove this face from the mesh and a new shifted face
+    std::vector<glm::vec3> new_vertices;
+    std::vector<std::vector<int>> new_faces;
+
+    // Copy the vertices
+    int v_iter = 0;
+    int v_lim = vertices.size();
+    wh(v_iter, v_lim){
+        new_vertices.push_back(vertices[v_iter].world_pos);
+        v_iter++;
+    }
+    // Copy the faces except the face_idx
+    int f_iter = 0;
+    int f_lim = faces_store.size();
+    wh(f_iter, f_lim){
+        if(f_iter == face_idx){
+            // Skip this face
+            f_iter++;
+            continue;
+        }
+        std::vector<int> new_face;
+        for(auto vertex : faces_store[f_iter]){
+            new_face.push_back(vertex);
+        }
+        new_faces.push_back(new_face);
+        f_iter++;
+    }
+
+    int original_vertex_count = vertices.size();
+
+    // Now we will add the new vertices
+    v_iter = 0;
+    v_lim = faces_store[face_idx].size();
+    std::vector<int> extruded_face;
+    while(v_iter < v_lim){
+        int orig_index = faces_store[face_idx][v_iter];
+        glm::vec3 new_vertex = vertices[orig_index].world_pos + d * normal;
+        new_vertices.push_back(new_vertex);
+        // New vertex index is the original count plus the current offset.
+        extruded_face.push_back(original_vertex_count + v_iter);
+        v_iter++;
+    }
+    new_faces.push_back(extruded_face);
+
+    // Add the connecting faces
+    v_iter = 0;
+    while(v_iter < v_lim) {
+        std::vector<int> side_face;
+        side_face.push_back(faces_store[face_idx][v_iter]);                             // original vertex i
+        side_face.push_back(faces_store[face_idx][(v_iter+1) % v_lim]);                 // original vertex i+1
+        side_face.push_back(original_vertex_count + ((v_iter+1) % v_lim));              // extruded vertex for i+1
+        side_face.push_back(original_vertex_count + v_iter);                            // extruded vertex for i
+        new_faces.push_back(side_face);
+        v_iter++;
+    }
+
+    clear_mesh();
+    // Return the new vertices and faces
+    return std::make_pair(new_vertices, new_faces);
+}
+
+float mesh::get_dist(glm::vec3 a, glm::vec3 b, glm::vec3 c, glm::vec3 p) {
+    // Compute the normal to the plane
+    glm::vec3 n = glm::normalize(glm::cross(b - a, c - a));
+    float plane_d = -glm::dot(n, a);
+
+    // Plane equation is n.x + d = 0    
+    
+    // Calculate signed distance from point to plane
+    float dist_ = glm::dot(n, p) + plane_d;
+    
+    // Project the point onto the plane
+    glm::vec3 proj = p - dist_ * n;
+
+    // Check if the projection is inside the triangle
+    bool inside = in_triangle(a, b, c, proj);
+
+    // If inside, return the distance of p from the plane
+    if (inside) {
+        return std::abs(dist_);
+    }
+
+    // If outside, return the minimum distance to the edges
+    float min_dist = std::numeric_limits<float>::max();
+
+    // Check distance to each edge
+    // Edge 1: a to b
+    float d1 = point_to_segment_distance(a, b, p);
+    min_dist = std::min(min_dist, d1);
+
+    // Edge 2: b to c
+    float d2 = point_to_segment_distance(b, c, p);
+    min_dist = std::min(min_dist, d2);
+
+    // Edge 3: c to a
+    float d3 = point_to_segment_distance(c, a, p);
+    min_dist = std::min(min_dist, d3);
+
+    return min_dist;
+}
+
+int mesh::get_closest_face(glm::vec3 p){
+    // Assume map maker has been called
+    int closest_face = -1;
+    float min_dist = std::numeric_limits<float>::max();
+    // Iterate over all faces
+    int f_iter = 0;
+    int f_lim = faces_store.size();
+    wh(f_iter,f_lim){
+        // Get the triangle index
+        int tri_idx = face_idx_poly_to_tri[f_iter];
+        // Calculate for the next n-2 triangles
+        int n_tris = faces_store[f_iter].size() - 2;
+        int t_iter = 0;
+        int t_lim = n_tris;
+        wh(t_iter, t_lim){
+            // Get the vertices of the triangle
+            glm::vec3 a = vertices[triangles_ivec[tri_idx + t_iter].x].world_pos;
+            glm::vec3 b = vertices[triangles_ivec[tri_idx + t_iter].y].world_pos;
+            glm::vec3 c = vertices[triangles_ivec[tri_idx + t_iter].z].world_pos;
+            // Get the distance
+            float dist = get_dist(a, b, c, p);
+            if (dist < min_dist) {
+                min_dist = dist;
+                closest_face = f_iter;
+            }
+            t_iter++;
+        }
+        f_iter++;
+    }
+    return closest_face;
+}
+
+std::pair<std::vector<glm::vec3>, std::vector<std::vector<int>>> mesh::extrude_region(std::vector<int> faces_, float d){
+    // We get a set of face indices that need to be extruded
+    // Let's go
+    
 }
 
 void mesh::print_ds() {

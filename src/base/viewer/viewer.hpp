@@ -41,6 +41,8 @@ namespace COL781 {
             void create_noisy_cube_new(int m, int n, int o);
             void umbrella_update_mesh(float delta, int iters);
             void load_obj_file(const std::string &filepath);
+            void extrude(int face_idx, float d);
+            int get_closest_face(glm::vec3 p);
             void view(bool flag=false);
             private:
             COL781::OpenGL::Rasterizer r;

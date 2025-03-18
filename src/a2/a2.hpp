@@ -55,6 +55,7 @@ class mesh{
     std::vector<glm::ivec2> boundary_edges_vec; // This will be used to store the boundary edges in vector form
     std::vector<std::vector<int>> faces_store; // This will be used to store the faces in vector form before triangulation
     std::map<int,int> face_idx_tri_to_poly; // This will be used to store the mapping from triangle face index to polygon face index
+    std::map<int,int> face_idx_poly_to_tri; // Call constructor map_maker to make this
     
     // For getters
     std::vector<glm::vec3> vertices_pos; // Derived
@@ -77,6 +78,10 @@ class mesh{
     void umbrella_update_all(float delta, int iters);
     std::pair<std::vector<glm::vec3>, std::vector<std::vector<int>>>  catmull_clark_subdivision();
     void vertex_normal_update_mode_all();
+    std::pair<std::vector<glm::vec3>, std::vector<std::vector<int>>> extrude_face(int face_idx, float d);
+    std::pair<std::vector<glm::vec3>, std::vector<std::vector<int>>> extrude_region(std::vector<int> faces_, float d);
+    float get_dist(glm::vec3 a, glm::vec3 b, glm::vec3 c, glm::vec3 p);
+    int get_closest_face(glm::vec3 p);
 
 
     // Constructors
@@ -84,6 +89,7 @@ class mesh{
     void vertex_set_construction(const glm::vec3* in_vertices, const glm::vec3* in_normals, int nv, bool normals_present);
     void triangulate_mesh(std::vector<std::vector<int>> &faces, int nf);
     void face_set_construction(const std::vector<std::vector<int>> &faces, int nf);
+    void map_maker();
 
     // Debugging functions
     void print_ds();

@@ -232,6 +232,19 @@ namespace COL781 {
             my_mesh.vertex_normal_update_mode_all();
         }
 
+        void Viewer::extrude(int idx, float d){
+            // Call the extrude face function
+            std::pair<std::vector<glm::vec3>, std::vector<std::vector<int>>> new_mesh = my_mesh.extrude_face(idx, d);
+            // Now set the mesh with normals as nullptr
+            setMesh_new(new_mesh.first.size(), new_mesh.first.data(), new_mesh.second, nullptr);
+            // Compute the normals
+            my_mesh.vertex_normal_update_mode_all();
+        }
+
+        int Viewer::get_closest_face(glm::vec3 p){
+            return my_mesh.get_closest_face(p);
+        }
+
         void Viewer::setMesh_new(int nv, const glm::vec3* vertices, const std::vector<std::vector<int>> &poly_faces, const glm::vec3* normals){
             if(normals == nullptr) {
                 glm::vec3* normalsz = new glm::vec3[nv];
@@ -258,6 +271,8 @@ namespace COL781 {
             std::cout << " Calling face set construction" << std::endl;
             my_mesh.face_set_construction(poly_faces_copy, nf);
             std::cout << " Done face set construction" << std::endl;
+
+            my_mesh.map_maker();
 
             // Uncomment for internal variables
             // my_mesh.print_ds();
@@ -762,7 +777,94 @@ namespace COL781 {
             std::vector<glm::vec3> new_normals(nv);
             for(const auto& vertex : used_vertices){
                 new_vertices[old_to_new[vertex]] = vertices[vertex];
-                new_normals[old_to_new[vertex]] = glm::vec3(0.0f, 0.0f, 0.0f);
+                // Setting the normals 
+                if(vertices[vertex].x == -0.5f){
+                    new_normals[old_to_new[vertex]] = glm::vec3(-1.0f, 0.0f, 0.0f);
+                }
+                else if(vertices[vertex].x == 0.5f){
+                    new_normals[old_to_new[vertex]] = glm::vec3(1.0f, 0.0f, 0.0f);
+                }
+                else if(vertices[vertex].y == -0.5f){
+                    new_normals[old_to_new[vertex]] = glm::vec3(0.0f, -1.0f, 0.0f);
+                }
+                else if(vertices[vertex].y == 0.5f){
+                    new_normals[old_to_new[vertex]] = glm::vec3(0.0f, 1.0f, 0.0f);
+                }
+                else if(vertices[vertex].z == -0.5f){
+                    new_normals[old_to_new[vertex]] = glm::vec3(0.0f, 0.0f, -1.0f);
+                }
+                else if(vertices[vertex].z == 0.5f){
+                    new_normals[old_to_new[vertex]] = glm::vec3(0.0f, 0.0f, 1.0f);
+                }
+                else{
+                    new_normals[old_to_new[vertex]] = glm::vec3(0.0f, 0.0f, 0.0f);
+                }
+
+                // For the edges take the average of the normals of the two faces
+                if(vertices[vertex].x == 0.5f && vertices[vertex].y == 0.5f){
+                    new_normals[old_to_new[vertex]] = glm::normalize(new_normals[old_to_new[vertex]] + glm::vec3(0.0f, 1.0f, 1.0f));
+                }
+                else if(vertices[vertex].x == -0.5f && vertices[vertex].y == 0.5f){
+                    new_normals[old_to_new[vertex]] = glm::normalize(new_normals[old_to_new[vertex]] + glm::vec3(0.0f, 1.0f, -1.0f));
+                }
+                else if(vertices[vertex].x == 0.5f && vertices[vertex].y == -0.5f){
+                    new_normals[old_to_new[vertex]] = glm::normalize(new_normals[old_to_new[vertex]] + glm::vec3(0.0f, -1.0f, 1.0f));
+                }
+                else if(vertices[vertex].x == -0.5f && vertices[vertex].y == -0.5f){
+                    new_normals[old_to_new[vertex]] = glm::normalize(new_normals[old_to_new[vertex]] + glm::vec3(0.0f, -1.0f, -1.0f));
+                }
+                else if(vertices[vertex].x == 0.5f && vertices[vertex].z == 0.5f){
+                    new_normals[old_to_new[vertex]] = glm::normalize(new_normals[old_to_new[vertex]] + glm::vec3(1.0f, 0.0f, 1.0f));
+                }
+                else if(vertices[vertex].x == -0.5f && vertices[vertex].z == 0.5f){
+                    new_normals[old_to_new[vertex]] = glm::normalize(new_normals[old_to_new[vertex]] + glm::vec3(-1.0f, 0.0f, 1.0f));
+                }
+                else if(vertices[vertex].x == 0.5f && vertices[vertex].z == -0.5f){
+                    new_normals[old_to_new[vertex]] = glm::normalize(new_normals[old_to_new[vertex]] + glm::vec3(1.0f, 0.0f, -1.0f));
+                }
+                else if(vertices[vertex].x == -0.5f && vertices[vertex].z == -0.5f){
+                    new_normals[old_to_new[vertex]] = glm::normalize(new_normals[old_to_new[vertex]] + glm::vec3(-1.0f, 0.0f, -1.0f));
+                }
+                else if(vertices[vertex].y == 0.5f && vertices[vertex].z == 0.5f){
+                    new_normals[old_to_new[vertex]] = glm::normalize(new_normals[old_to_new[vertex]] + glm::vec3(0.0f, 1.0f, 1.0f));
+                }
+                else if(vertices[vertex].y == -0.5f && vertices[vertex].z == 0.5f){
+                    new_normals[old_to_new[vertex]] = glm::normalize(new_normals[old_to_new[vertex]] + glm::vec3(0.0f, -1.0f, 1.0f));
+                }
+                else if(vertices[vertex].y == 0.5f && vertices[vertex].z == -0.5f){
+                    new_normals[old_to_new[vertex]] = glm::normalize(new_normals[old_to_new[vertex]] + glm::vec3(0.0f, 1.0f, -1.0f));
+                }
+                else if(vertices[vertex].y == -0.5f && vertices[vertex].z == -0.5f){
+                    new_normals[old_to_new[vertex]] = glm::normalize(new_normals[old_to_new[vertex]] + glm::vec3(0.0f, -1.0f, -1.0f));
+                }
+
+                // For the corners take the average of the normals of the three faces
+                if(vertices[vertex].x == 0.5f && vertices[vertex].y == 0.5f && vertices[vertex].z == 0.5f){
+                    new_normals[old_to_new[vertex]] = glm::normalize(new_normals[old_to_new[vertex]] + glm::vec3(1.0f, 1.0f, 1.0f));
+                }
+                else if(vertices[vertex].x == -0.5f && vertices[vertex].y == 0.5f && vertices[vertex].z == 0.5f){
+                    new_normals[old_to_new[vertex]] = glm::normalize(new_normals[old_to_new[vertex]] + glm::vec3(-1.0f, 1.0f, 1.0f));
+                }
+                else if(vertices[vertex].x == 0.5f && vertices[vertex].y == -0.5f && vertices[vertex].z == 0.5f){
+                    new_normals[old_to_new[vertex]] = glm::normalize(new_normals[old_to_new[vertex]] + glm::vec3(1.0f, -1.0f, 1.0f));
+                }
+                else if(vertices[vertex].x == -0.5f && vertices[vertex].y == -0.5f && vertices[vertex].z == 0.5f){
+                    new_normals[old_to_new[vertex]] = glm::normalize(new_normals[old_to_new[vertex]] + glm::vec3(-1.0f, -1.0f, 1.0f));
+                }
+                else if(vertices[vertex].x == 0.5f && vertices[vertex].y == 0.5f && vertices[vertex].z == -0.5f){
+                    new_normals[old_to_new[vertex]] = glm::normalize(new_normals[old_to_new[vertex]] + glm::vec3(1.0f, 1.0f, -1.0f));
+                }
+                else if(vertices[vertex].x == -0.5f && vertices[vertex].y == 0.5f && vertices[vertex].z == -0.5f){
+                    new_normals[old_to_new[vertex]] = glm::normalize(new_normals[old_to_new[vertex]] + glm::vec3(-1.0f, 1.0f, -1.0f));
+                }
+                else if(vertices[vertex].x == 0.5f && vertices[vertex].y == -0.5f && vertices[vertex].z == -0.5f){
+                    new_normals[old_to_new[vertex]] = glm::normalize(new_normals[old_to_new[vertex]] + glm::vec3(1.0f, -1.0f, -1.0f));
+                }
+                else if(vertices[vertex].x == -0.5f && vertices[vertex].y == -0.5f && vertices[vertex].z == -0.5f){
+                    new_normals[old_to_new[vertex]] = glm::normalize(new_normals[old_to_new[vertex]] + glm::vec3(-1.0f, -1.0f, -1.0f));
+                }
+
+
             }
             // Now update the faces
             for(auto& face : poly_faces){
