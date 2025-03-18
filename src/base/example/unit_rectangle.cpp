@@ -9,6 +9,6 @@ int main() {
     if (!v.initialize("Mesh viewer", 640, 480)) {
         return EXIT_FAILURE;
     }
-    v.create_unit_rectangle(5,20);
+    v.create_unit_rectangle(4,7);
     v.view();
 }

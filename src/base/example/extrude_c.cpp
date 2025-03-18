@@ -12,11 +12,12 @@ int main() {
     }
 
 
-    v.load_obj_file("/Users/darkelixir/Desktop/COL781/A2/my_v/meshes/cube_2.obj");
+    v.create_sphere(15,10);
     std::vector<int> ff;
-    ff.push_back(0);
-    ff.push_back(1);
-    ff.push_back(2);
-    v.extrude_region(ff, 0.33f);
+    ff.push_back(51);
+    ff.push_back(52);
+    ff.push_back(66);
+    ff.push_back(67);
+    v.extrude_region(ff, 0.075f);
     v.view();   
 }

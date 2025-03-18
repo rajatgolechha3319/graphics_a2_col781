@@ -9,6 +9,6 @@ int main() {
     if (!v.initialize("Mesh viewer", 640, 480)) {
         return EXIT_FAILURE;
     }
-    v.create_cube_new(10,10,10);
+    v.create_cube_new(8,8,8);
     v.view();
 }
