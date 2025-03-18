@@ -45,6 +45,16 @@ float point_to_segment_distance(const glm::vec3 &a, const glm::vec3 &b, const gl
     }
 }
 
+bool find_element(const std::vector<int>& vec, int elem) {
+    bool found = false;
+    for (int v : vec) {
+        if (v == elem) {
+            found = true;
+            break;
+        }
+    }
+    return found;
+}
 // Function to find edge direction in a face
 // Returns true if edge is (v1->v2), false if (v2->v1)
 bool get_edge_direction(const std::vector<int>& face, int v1, int v2) {
@@ -849,7 +859,122 @@ int mesh::get_closest_face(glm::vec3 p){
 std::pair<std::vector<glm::vec3>, std::vector<std::vector<int>>> mesh::extrude_region(std::vector<int> faces_, float d){
     // We get a set of face indices that need to be extruded
     // Let's go
-    
+    std::vector<std::pair<int,int>> region_boundary_edges;
+    std::vector<std::pair<int,int>> region_edges;
+    std::vector<std::pair<int,int>> region_edges_2;
+    std::vector<int> region_vertices;
+    for(auto x : faces_){
+        // Iterate over the face from faces_store amd add to region edges and region vertices
+        int face_size = faces_store[x].size();
+        int i = 0;
+        wh(i, face_size){
+            region_vertices.push_back(faces_store[x][i]);
+            region_edges.push_back(get_edge(faces_store[x][i], faces_store[x][(i+1)%face_size]));
+            region_edges_2.push_back(std::make_pair(faces_store[x][(i+1)%face_size], faces_store[x][i]));
+            i++;
+        }
+    }
+    // If edge appears twice in region_edges it is internal else boundary
+    std::map<std::pair<int,int>,int> edge_count;
+    for(auto edge : region_edges){
+        edge_count[edge]++;
+    }
+    for(auto edge : edge_count){
+        if(edge.second == 1){
+            region_boundary_edges.push_back(edge.first);
+        }
+    }
+
+    // Now we have the boundary edges and the region vertices
+    std::vector<glm::vec3> new_vertices;
+    std::vector<std::vector<int>> new_faces;
+
+    // Copy all the old vertices
+    int v_iter = 0;
+    int v_lim = vertices.size();
+    wh(v_iter, v_lim){
+        new_vertices.push_back(vertices[v_iter].world_pos);
+        v_iter++;
+    }
+
+    std::map<int, glm::vec3> vertex_normal_map;
+    std::map<int, int> vertex_normal_count;
+    // For each vertex in the region, we compute an equal weighted average of the normals of the faces it is a part of
+    for(auto f_idx : faces_){
+        glm::vec3 f_normal = faces[face_idx_poly_to_tri[f_idx]].face_normal;
+        for(auto vertex : faces_store[f_idx]){
+            if(vertex_normal_map.find(vertex) == vertex_normal_map.end()){
+                vertex_normal_map[vertex] = glm::normalize(f_normal);
+                vertex_normal_count[vertex] = 1;
+            } else {
+                vertex_normal_map[vertex] += f_normal;
+                vertex_normal_count[vertex]++;
+            }
+        }
+    }
+
+    // Normalize the normals
+    for(auto vertex : region_vertices){
+        vertex_normal_map[vertex] /= (float)vertex_normal_count[vertex];
+        vertex_normal_map[vertex] = glm::normalize(vertex_normal_map[vertex]);
+    }
+
+    // Now we will add the new vertices
+    int original_vertex_count = vertices.size();
+    std::map<int,int> old_to_new_vertex;
+    std::set<int> region_vertices_set(region_vertices.begin(), region_vertices.end());
+    for(auto vertex : region_vertices_set){
+        glm::vec3 new_vertex = vertices[vertex].world_pos + d * vertex_normal_map[vertex];
+        new_vertices.push_back(new_vertex);
+        old_to_new_vertex[vertex] = new_vertices.size() - 1;
+    }
+
+    // Now we will add the new faces
+    // Copy all old faces except the faces in faces_
+    int f_iter = 0;
+    int f_lim = faces_store.size();
+    wh(f_iter, f_lim){
+        if(find_element(faces_,f_iter)){
+            f_iter++;
+            continue;
+        }
+        std::vector<int> new_face;
+        for(auto vertex : faces_store[f_iter]){
+            new_face.push_back(vertex);
+        }
+        new_faces.push_back(new_face);
+        f_iter++;
+    }
+
+    // For the boundary edges add CCW faces linking the old and new vertices
+    for(auto edge : region_edges_2){
+        if(edge_count[get_edge(edge.first, edge.second)] == 1){
+            // This is a boundary edge
+            std::vector<int> new_face;
+            new_face.push_back(old_to_new_vertex[edge.first]);
+            new_face.push_back(edge.first);
+            new_face.push_back(edge.second);
+            new_face.push_back(old_to_new_vertex[edge.second]);
+            new_faces.push_back(new_face);
+        }
+    }
+
+    // Now we will add the region faces
+    for(auto f_idx : faces_){
+        std::vector<int> new_face;
+        int face_size = faces_store[f_idx].size();
+        int i = 0;
+        wh(i, face_size){
+            new_face.push_back(old_to_new_vertex[faces_store[f_idx][i]]);
+            i++;
+        }
+        new_faces.push_back(new_face);
+    }
+
+    clear_mesh();
+    // Return the new vertices and faces
+    return std::make_pair(new_vertices, new_faces);
+
 }
 
 void mesh::print_ds() {

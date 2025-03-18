@@ -42,6 +42,8 @@ namespace COL781 {
             void umbrella_update_mesh(float delta, int iters);
             void load_obj_file(const std::string &filepath);
             void extrude(int face_idx, float d);
+            void extrude_region(std::vector<int> face_idx, float d);
+            void flip_normals();
             int get_closest_face(glm::vec3 p);
             void view(bool flag=false);
             private:

@@ -223,6 +223,7 @@ namespace COL781 {
         }
 
         void Viewer::catmull_clark(){
+            std::cout << "Catmull clark was called " << std::endl;
             // Call the catmull clark subdivision
             std::pair<std::vector<glm::vec3>, std::vector<std::vector<int>>> new_mesh = my_mesh.catmull_clark_subdivision();
 
@@ -240,6 +241,16 @@ namespace COL781 {
             // Compute the normals
             my_mesh.vertex_normal_update_mode_all();
         }
+
+        void Viewer::extrude_region(std::vector<int> face_idx, float d){
+            // Call the extrude region function
+            std::pair<std::vector<glm::vec3>, std::vector<std::vector<int>>> new_mesh = my_mesh.extrude_region(face_idx, d);
+            // Now set the mesh with normals as nullptr
+            setMesh_new(new_mesh.first.size(), new_mesh.first.data(), new_mesh.second, nullptr);
+            // Compute the normals
+            my_mesh.vertex_normal_update_mode_all();
+        }
+
 
         int Viewer::get_closest_face(glm::vec3 p){
             return my_mesh.get_closest_face(p);
@@ -288,6 +299,28 @@ namespace COL781 {
             std::cout << " Done setting mesh" << std::endl;
 
             my_mesh.print_ds();
+        }
+
+        void Viewer::flip_normals(){
+            // Fetch the normals
+            glm::vec3* normals = my_mesh.get_vertices_normal();
+            // Copy the normals
+            int nv = my_mesh.get_num_vertices();
+            glm::vec3* new_normals = new glm::vec3[nv];
+            int i = 0;
+            while(i < nv){
+                new_normals[i] = -normals[i];
+                i++;
+            }
+            // Now set the mesh with the new normals
+            r.setVertexAttribs(object, 0, my_mesh.get_num_vertices() , my_mesh.get_vertices_pos());
+            r.setVertexAttribs(object, 1, my_mesh.get_num_vertices(), new_normals);
+            r.setTriangleIndices(object, my_mesh.get_num_faces(), my_mesh.get_triangles());
+            r.setVertexAttribs(wireframe, 0, my_mesh.get_num_vertices(), my_mesh.get_vertices_pos());
+            r.setVertexAttribs(wireframe, 1, my_mesh.get_num_vertices(), new_normals);
+            r.setEdgeIndices(wireframe, my_mesh.get_num_boundary_edges(), my_mesh.get_boundary_edges());
+            stagetransform = calculateModelMatrix(my_mesh.get_vertices_pos(), my_mesh.get_num_vertices());
+            std::cout << " Done flipping normals" << std::endl;
         }
 
         void Viewer::create_unit_rectangle(int m, int n){
@@ -1106,7 +1139,7 @@ namespace COL781 {
             float cube_side = 1.0f;
 
             // Create (m+1)*(n+1)*(o+1) vertices
-            float noise_lim  = 0.4f;
+            float noise_lim  = 0.2f;
             std::uniform_real_distribution<float> dist_m(-noise_lim/(float)m, noise_lim/(float)m);
             std::uniform_real_distribution<float> dist_n(-noise_lim/(float)n, noise_lim/(float)n);
             std::uniform_real_distribution<float> dist_o(-noise_lim/(float)o, noise_lim/(float)o);

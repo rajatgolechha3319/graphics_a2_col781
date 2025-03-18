@@ -127,6 +127,39 @@ build example: CXX_EXECUTABLE_LINKER__example_Debug CMakeFiles/example.dir/src/b
   TARGET_FILE = example
   TARGET_PDB = example.dbg
 
+# =============================================================================
+# Object build statements for EXECUTABLE target part_8
+
+
+#############################################
+# Order-only phony target for part_8
+
+build cmake_object_order_depends_target_part_8: phony || .
+
+build CMakeFiles/part_8.dir/meshes/part_8.cpp.o: CXX_COMPILER__part_8_unscanned_Debug /Users/darkelixir/Desktop/COL781/A2/my_v/meshes/part_8.cpp || cmake_object_order_depends_target_part_8
+  DEP_FILE = CMakeFiles/part_8.dir/meshes/part_8.cpp.o.d
+  FLAGS = -g -std=gnu++11 -arch x86_64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX15.0.sdk -fdiagnostics-color=always
+  INCLUDES = -I/usr/local/Cellar/glm/1.0.1/include -I/usr/local/Cellar/sdl2/2.30.11/include -I/Users/darkelixir/Desktop/COL781/A2/my_v/deps/include -isystem /usr/local/include -iframework /Library/Developer/CommandLineTools/SDKs/MacOSX15.0.sdk/System/Library/Frameworks
+  OBJECT_DIR = CMakeFiles/part_8.dir
+  OBJECT_FILE_DIR = CMakeFiles/part_8.dir/meshes
+
+
+# =============================================================================
+# Link build statements for EXECUTABLE target part_8
+
+
+#############################################
+# Link the executable part_8
+
+build part_8: CXX_EXECUTABLE_LINKER__part_8_Debug CMakeFiles/part_8.dir/meshes/part_8.cpp.o | /usr/local/lib/libglm.dylib /Library/Developer/CommandLineTools/SDKs/MacOSX15.0.sdk/System/Library/Frameworks/OpenGL.framework /usr/local/Cellar/sdl2/2.30.11/lib/libSDL2.dylib
+  FLAGS = -g -arch x86_64 -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX15.0.sdk
+  LINK_LIBRARIES = -Wl,-rpath,/usr/local/lib  /usr/local/lib/libglm.dylib  -framework OpenGL  /usr/local/Cellar/sdl2/2.30.11/lib/libSDL2.dylib
+  OBJECT_DIR = CMakeFiles/part_8.dir
+  POST_BUILD = :
+  PRE_LINK = :
+  TARGET_FILE = part_8
+  TARGET_PDB = part_8.dbg
+
 
 #############################################
 # Utility command for edit_cache
@@ -163,7 +196,7 @@ build viewer: phony libviewer.a
 #############################################
 # Folder: /Users/darkelixir/Desktop/COL781/A2/my_v/cmake-build-debug
 
-build all: phony libviewer.a example
+build all: phony libviewer.a example part_8
 
 # =============================================================================
 # Built-in targets

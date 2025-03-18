@@ -99,13 +99,33 @@ int main() {
     }
 
 //    v.load_obj_file("/Users/darkelixir/Desktop/COL781/A2/my_v/meshes/bunny_1k.obj");
-//    v.load_obj_file("/Users/darkelixir/Desktop/COL781/A2/my_v/meshes/cube.obj");
+//    v.load_obj_file("/Users/darkelixir/Desktop/COL781/A2/my_v/meshes/cube_2.obj");
+//    std::vector<int> ff;
+//    ff.push_back(0);
+    // ff.push_back(1);
+    // ff.push_back(2);
+    // v.extrude_region(ff, 0.33f);
 //    v.load_obj_file("/Users/darkelixir/Desktop/COL781/A2/my_v/meshes/spot_control_mesh.obj");
+//    v.load_obj_file("/Users/darkelixir/Desktop/COL781/A2/my_v/meshes/uc.obj");
+
+    // std::vector<int> ff;
+    // ff.push_back(6);
+    // ff.push_back(7);
+    // ff.push_back(8);
+    // ff.push_back(5);
+    // // ff.push_back(2);
+    // v.extrude_region(ff, 0.33f);
+    // v.extrude(5, 0.3f);
+    // v.extrude(6, 0.1f);
+    // v.extrude(7, 0.1f);
+    // v.extrude(8, 0.1f);
+
+
 //    v.load_obj_file("/Users/darkelixir/Desktop/COL781/A2/my_v/meshes/dhaka.obj");
     // v.setMesh_testing(20, 10, 12, vertices, triangles, edges, normals);
     // v.create_unit_rectangle(10, 5);
     // v.create_sphere(11, 50);
-    v.create_cube_new(10,10,10);
+    // v.create_cube_new(10,10,10);
     // v.create_noisy_cube_new(10, 10, 10);
     //  v.catmull_clark();
     // v.catmull_clark();
@@ -123,5 +143,8 @@ int main() {
     // v.extrude(v.get_closest_face(vec3(-0.5f,0.0f,0.0f)),0.33f);
 
 
+    // v.load_obj_file("/Users/darkelixir/Desktop/COL781/A2/my_v/meshes/part_8.obj");
+    // v.extrude(0,0.5f);
+    v.setMesh(20, 10, 12, vertices, triangles, edges, normals);
    v.view();
 }
